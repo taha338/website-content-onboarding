@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────
+   Operation 1776 — Brand tokens (shared with campaign-intake)
+   ───────────────────────────────────────────────────────────────── */
+@theme {
+  --color-op-black:       #000000;
+  --color-op-red:         #a61e22;
+  --color-op-red-deep:    #7a1419;
+  --color-op-white:       #f9f8f6;
+  --color-op-cream:       #f1ede5;
+  --color-op-ink:         #1a1a1a;
+  --color-op-muted:       #6b6b6b;
+  --color-op-line:        #e5e1d8;
+
+  --font-display: "Black Ops One", "Stardos Stencil", system-ui, sans-serif;
+  --font-script:  "Caveat", "Brush Script MT", cursive;
+  --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body { background: var(--color-op-white); }
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-op-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display { font-family: var(--font-display); letter-spacing: 0.04em; }
+.font-script  { font-family: var(--font-script); }
+
+.op-paper {
+  background-color: var(--color-op-white);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.03) 1px, transparent 0),
+    radial-gradient(circle at 18px 14px, rgba(166, 30, 34, 0.025) 1px, transparent 0);
+  background-size: 22px 22px, 36px 36px;
+}
+
+.op-strip {
+  background: var(--color-op-black);
+  position: relative;
+}
+.op-strip::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: -3px; height: 3px;
+  background: var(--color-op-red);
+}
+
+.op-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-family: var(--font-body);
+  color: var(--color-op-ink);
+  background: #ffffff;
+  border: 1px solid var(--color-op-line);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.op-input:focus {
+  border-color: var(--color-op-red);
+  box-shadow: 0 0 0 3px rgba(166, 30, 34, 0.12);
+}
+
+.op-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-op-ink);
+  margin-bottom: 0.4rem;
+}
+.op-help {
+  font-size: 0.78rem;
+  color: var(--color-op-muted);
+  margin-top: 0.35rem;
+  line-height: 1.5;
+}
+
+.op-section-num {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+  color: var(--color-op-red);
+}
+
+@media print {
+  .no-print { display: none !important; }
+}
