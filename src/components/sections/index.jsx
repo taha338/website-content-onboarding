@@ -142,8 +142,10 @@ export function S2BPartyProfile() {
       <TextArea label="Vision Statement" rows={3} value={state.visionStatement} onChange={(v) => update({ visionStatement: v })} />
 
       <RepeatingBlock
-        label="Core Values (3–7)"
+        label="Core Values"
+        help="Minimum 3. Add more if you'd like."
         items={state.coreValues}
+        minRows={3}
         onAdd={() => addRepeating('coreValues', { value: '' })}
         onRemove={(i) => removeRepeating('coreValues', i)}
         addLabel="Add another value"
@@ -262,15 +264,33 @@ export function S3Narrative() {
   );
 }
 
-/* ─── 4. Issues / Platform — 5 issues × subject-aware fields ─── */
+/* ─── 4. Issues / Platform — start with 3, "Add another" up to 10 ─── */
 export function S4Issues() {
-  const { state, updateIssue, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, updateIssue, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
+  const MIN_ISSUES = 3;
+  const MAX_ISSUES = 10;
+  const blank = {
+    name: '', position: '', supportingDetail: '',
+    personalConnection: '', partyRationale: '',
+    contrastOpponent: '', contrastOtherParties: '',
+  };
   return (
-    <Section defaultOpen index="4" title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars.">
+    <Section defaultOpen index="4" title="Issues / Platform" subtitle="At least 3 issues. Add more if you'd like — up to 10.">
       {state.issues.map((row, i) => (
-        <div key={i} className="p-4 rounded-lg border border-[var(--color-op-line)] bg-white space-y-3">
-          <p className="op-section-num">ISSUE #{i + 1}</p>
+        <div key={i} className="p-4 rounded-lg border border-[var(--color-op-line)] bg-white space-y-3 relative">
+          <div className="flex items-center justify-between">
+            <p className="op-section-num">ISSUE #{i + 1}</p>
+            {state.issues.length > MIN_ISSUES && (
+              <button
+                type="button"
+                onClick={() => removeRepeating('issues', i)}
+                className="text-xs font-semibold text-[var(--color-op-muted)] hover:text-[var(--color-op-red)] uppercase tracking-wider"
+              >
+                Remove
+              </button>
+            )}
+          </div>
           <TextField label="Name" value={row.name} onChange={(v) => updateIssue(i, { name: v })} />
           <TextArea label="Position" rows={2} value={row.position} onChange={(v) => updateIssue(i, { position: v })} />
           <TextArea label="Supporting detail" rows={3} value={row.supportingDetail} onChange={(v) => updateIssue(i, { supportingDetail: v })} />
@@ -288,6 +308,15 @@ export function S4Issues() {
           )}
         </div>
       ))}
+      {state.issues.length < MAX_ISSUES && (
+        <button
+          type="button"
+          onClick={() => addRepeating('issues', blank)}
+          className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-[var(--color-op-red)] hover:bg-red-50 transition-colors"
+        >
+          + Add another issue ({state.issues.length} of {MAX_ISSUES})
+        </button>
+      )}
     </Section>
   );
 }

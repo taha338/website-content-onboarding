@@ -60,7 +60,8 @@ const initial = {
   foundersHistorical: [{ name: '', role: '', dates: '' }],
   missionStatement: '',
   visionStatement: '',
-  coreValues: [{ value: '' }],
+  // Core values: minimum 3 — pre-seed three rows; user can add more.
+  coreValues: [{ value: '' }, { value: '' }, { value: '' }],
   platformPillarsFull: '',
   positionPapers: [{ title: '', summary: '', link: '' }],
   membershipNumbers: '',
@@ -87,8 +88,9 @@ const initial = {
   voterDo: '',
   elevatorPitch: '',
 
-  // 4. Issues / Platform — 5 issues × multiple fields
-  issues: Array.from({ length: 5 }, () => ({
+  // 4. Issues / Platform — start with 3 issues; user can add more
+  // (caps at 10 so the form doesn't get unwieldy).
+  issues: Array.from({ length: 3 }, () => ({
     name: '', position: '', supportingDetail: '',
     personalConnection: '',  // candidate
     partyRationale: '',      // party

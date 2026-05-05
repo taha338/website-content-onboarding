@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { ContentProvider, useContent } from './context/ContentContext';
 import { fetchPrefill, readClientIdFromUrl } from './lib/clickup';
+import { generateContentPdf } from './lib/pdf';
+import { Download } from 'lucide-react';
 import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import StageShell from './components/StageShell';
@@ -163,11 +165,7 @@ function Stage9Review() {
   }
   return (
     <StageShell number={9} title="Review & Submit" subtitle="One last review, then we take it from here." isLast hideContinue>
-      <div className="p-6 rounded-2xl border border-[var(--color-op-line)] bg-white">
-        <p className="text-sm text-[var(--color-op-muted)] mb-4">
-          Submitting writes to Supabase and notifies the Op1776 team in ClickUp.
-          You can return to this same link to edit later.
-        </p>
+      <div className="p-6 rounded-2xl border border-[var(--color-op-line)] bg-white flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <button
           type="button"
           onClick={submit}
@@ -176,10 +174,17 @@ function Stage9Review() {
         >
           {state.submitting ? 'Submitting…' : 'Submit Content'}
         </button>
-        {state.submitError && (
-          <p className="mt-3 text-sm text-red-700">{state.submitError}</p>
-        )}
+        <button
+          type="button"
+          onClick={() => generateContentPdf(state)}
+          className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-[var(--color-op-ink)] text-[var(--color-op-ink)] font-semibold uppercase tracking-wider text-sm hover:bg-[var(--color-op-cream)] transition-colors"
+        >
+          <Download size={16} /> Download as PDF
+        </button>
       </div>
+      {state.submitError && (
+        <p className="mt-3 text-sm text-red-700">{state.submitError}</p>
+      )}
     </StageShell>
   );
 }
