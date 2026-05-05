@@ -14,6 +14,15 @@ const initial = {
   prefillStatus: 'idle',
   prefillError: '',
 
+  // Wizard navigation
+  currentStage: 0,
+  completedStages: [],
+  // Optional-section toggles
+  optInLeadership: '',     // party only — do you want public bios?
+  optInVoterRes: '',       // candidate only — do you want voter resources page?
+  optInMembership: '',     // party only — public membership pages?
+  optInPublicGov: '',      // party only — public bylaws / platform / constitution?
+
   // 1. Identity (subject type + display copy)
   subjectType: '',
   displayName: '',
@@ -254,6 +263,16 @@ function reducer(state, action) {
       };
     case 'SET_SUBMIT_STATE':
       return { ...state, ...action.payload };
+    case 'SET_STAGE':
+      return { ...state, currentStage: action.payload };
+    case 'NEXT_STAGE':
+      return {
+        ...state,
+        completedStages: [...new Set([...state.completedStages, state.currentStage])],
+        currentStage: state.currentStage + 1,
+      };
+    case 'PREV_STAGE':
+      return { ...state, currentStage: Math.max(0, state.currentStage - 1) };
     default:
       return state;
   }
@@ -275,10 +294,21 @@ export function ContentProvider({ children }) {
   const isCandidate = state.subjectType === 'candidate';
   const subjectChosen = isParty || isCandidate;
 
+  const goToStage = useCallback((s) => dispatch({ type: 'SET_STAGE', payload: s }), []);
+  const nextStage = useCallback(() => {
+    dispatch({ type: 'NEXT_STAGE' });
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+  const prevStage = useCallback(() => {
+    dispatch({ type: 'PREV_STAGE' });
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   const value = useMemo(() => ({
     state, dispatch, update, updateIssue, updateRepeating, addRepeating, removeRepeating,
     isParty, isCandidate, subjectChosen,
-  }), [state, update, updateIssue, updateRepeating, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen]);
+    goToStage, nextStage, prevStage,
+  }), [state, update, updateIssue, updateRepeating, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen, goToStage, nextStage, prevStage]);
 
   return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
 }

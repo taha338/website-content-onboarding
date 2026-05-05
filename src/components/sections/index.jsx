@@ -20,7 +20,7 @@ import {
 export function S1Identity() {
   const { state, update } = useContent();
   return (
-    <Section index="1" title="Identity">
+    <Section defaultOpen index="1" title="Identity">
       <TwoCol>
         <TextField
           label="Display Name on Site"
@@ -59,7 +59,7 @@ export function S2ACandidateBio() {
   const { state, update, updateRepeating, addRepeating, removeRepeating, isCandidate } = useContent();
   if (!isCandidate) return null;
   return (
-    <Section index="2A" title="Candidate Biography">
+    <Section defaultOpen index="2A" title="Candidate Biography">
       <TwoCol>
         <TextField label="Born (city, state)" value={state.bornCityState} onChange={(v) => update({ bornCityState: v })} />
         <TextField label="Raised (if different)" optional value={state.raised} onChange={(v) => update({ raised: v })} />
@@ -120,7 +120,7 @@ export function S2BPartyProfile() {
   const { state, update, updateRepeating, addRepeating, removeRepeating, isParty } = useContent();
   if (!isParty) return null;
   return (
-    <Section index="2B" title="Party Profile">
+    <Section defaultOpen index="2B" title="Party Profile">
       <TextField label="Founding Year" optional value={state.foundingYear} onChange={(v) => update({ foundingYear: v })} help="Auto from Form 1." />
       <TextArea label="Founding Story — long form" rows={5} value={state.foundingStoryLong} onChange={(v) => update({ foundingStoryLong: v })} help="Pre-filled from Form 2 dropdown; expand to full narrative." />
 
@@ -203,7 +203,7 @@ export function S2CLeadership() {
   const { state, update, updateRepeating, addRepeating, removeRepeating, isParty } = useContent();
   if (!isParty) return null;
   return (
-    <Section index="2C" title="Leadership Profiles" subtitle="One block per public-facing leader.">
+    <Section defaultOpen index="2C" title="Leadership Profiles" subtitle="One block per public-facing leader.">
       <RepeatingBlock
         items={state.leadershipProfiles}
         onAdd={() => addRepeating('leadershipProfiles', { name: '', title: '', shortBio: '', longBio: '', headshot: '', cityState: '', background: '', joinedYear: '', socialHandles: '', quote: '' })}
@@ -240,7 +240,7 @@ export function S3Narrative() {
   const { state, update, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="3" title="Narrative &amp; Messaging">
+    <Section defaultOpen index="3" title="Narrative &amp; Messaging">
       {isCandidate && (
         <>
           <TextArea label="Why are you running?" rows={4} value={state.whyRunning} onChange={(v) => update({ whyRunning: v })} />
@@ -267,7 +267,7 @@ export function S4Issues() {
   const { state, updateIssue, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="4" title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars.">
+    <Section defaultOpen index="4" title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars.">
       {state.issues.map((row, i) => (
         <div key={i} className="p-4 rounded-lg border border-[var(--color-op-line)] bg-white space-y-3">
           <p className="op-section-num">ISSUE #{i + 1}</p>
@@ -297,7 +297,7 @@ export function S5Record() {
   const { state, update, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="5" title="Record &amp; Receipts">
+    <Section defaultOpen index="5" title="Record &amp; Receipts">
       {isCandidate && (
         <>
           <TextArea label="Top 5 votes to highlight" rows={4} value={state.topVotesHighlight} onChange={(v) => update({ topVotesHighlight: v })} help="Bill #, date, summary." />
@@ -324,7 +324,7 @@ export function S6RiskLegal() {
   const { state, update, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="6" title="Risk &amp; Legal">
+    <Section defaultOpen index="6" title="Risk &amp; Legal">
       <TextArea label="Topics to avoid entirely" rows={3} value={state.topicsAvoid} onChange={(v) => update({ topicsAvoid: v })} />
       <TextArea label="Topics requiring legal/compliance review" rows={3} value={state.topicsLegalReview} onChange={(v) => update({ topicsLegalReview: v })} />
       {isParty && (
@@ -345,7 +345,7 @@ export function S7Compliance() {
   const { state, update, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="7" title="Compliance &amp; Disclosures">
+    <Section defaultOpen index="7" title="Compliance &amp; Disclosures">
       <TextArea label="Paid-for disclaimer — exact wording" rows={2} value={state.paidForDisclaimer} onChange={(v) => update({ paidForDisclaimer: v })} />
       <TextArea label="Placement requirements" optional rows={2} value={state.placementRequirements} onChange={(v) => update({ placementRequirements: v })} />
       <TwoCol>
@@ -364,7 +364,7 @@ export function S8DataGov() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="8" title="Data Governance">
+    <Section defaultOpen index="8" title="Data Governance">
       <TextArea label="Data retention policy" rows={3} value={state.dataRetentionPolicy} onChange={(v) => update({ dataRetentionPolicy: v })} />
       <TextArea label="How are supporter / member data requests (deletion, access) handled?" rows={3} value={state.supporterDataRequests} onChange={(v) => update({ supporterDataRequests: v })} />
       <TextArea label="Data-sharing agreements (public-facing)" optional rows={3} value={state.dataSharingPublic} onChange={(v) => update({ dataSharingPublic: v })} help="Pre-filled from Form 1; mark which are disclosed publicly." />
@@ -377,7 +377,7 @@ export function S9Endorsed() {
   const { state, update, updateRepeating, addRepeating, removeRepeating, isParty } = useContent();
   if (!isParty) return null;
   return (
-    <Section index="9" title="Endorsed Candidates" subtitle="Current cycle slate.">
+    <Section defaultOpen index="9" title="Endorsed Candidates" subtitle="Current cycle slate.">
       <RepeatingBlock
         items={state.endorsedCandidates}
         onAdd={() => addRepeating('endorsedCandidates', { name: '', office: '', state: '', year: '', photo: '', link: '' })}
@@ -411,7 +411,7 @@ export function S10Events() {
   const { state, update, isCandidate, isParty, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="10" title="Events">
+    <Section defaultOpen index="10" title="Events">
       <TwoCol>
         <TextField label="Events Calendar Source" value={state.eventsCalendarSource} onChange={(v) => update({ eventsCalendarSource: v })} placeholder="Google Calendar, Eventbrite, Mobilize, Manual…" />
         <TextField label="Events Calendar Owner" value={state.eventsCalendarOwner} onChange={(v) => update({ eventsCalendarOwner: v })} />
@@ -429,7 +429,7 @@ export function S11Media() {
   const { state, update, isCandidate, isParty, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="11" title="Media Library" subtitle="Paste Drive/Dropbox/WeTransfer links to assets. Direct upload coming in v1.">
+    <Section defaultOpen index="11" title="Media Library" subtitle="Paste Drive/Dropbox/WeTransfer links to assets. Direct upload coming in v1.">
       {isCandidate && (
         <>
           <TwoCol>
@@ -478,7 +478,7 @@ export function S12Social() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="12" title="Social Media">
+    <Section defaultOpen index="12" title="Social Media">
       <TwoCol>
         <TextField label="Facebook page URL" optional value={state.facebook} onChange={(v) => update({ facebook: v })} />
         <TextField label="Instagram" optional value={state.instagram} onChange={(v) => update({ instagram: v })} />
@@ -506,7 +506,7 @@ export function S13Inspiration() {
   const { state, update, isCandidate, isParty, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="13" title="Inspiration &amp; References">
+    <Section defaultOpen index="13" title="Inspiration &amp; References">
       {isCandidate && (
         <>
           <TextArea label="Three campaign websites you like — why" rows={4} value={state.websitesLikedCandidate} onChange={(v) => update({ websitesLikedCandidate: v })} />
@@ -529,7 +529,7 @@ export function S14Press() {
   const { state, update, updateRepeating, addRepeating, removeRepeating, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="14" title="Press &amp; Newsroom">
+    <Section defaultOpen index="14" title="Press &amp; Newsroom">
       <TwoCol>
         <TextField label="Press contact name" value={state.pressContactName} onChange={(v) => update({ pressContactName: v })} help="Pre-fills from Form 1 Communications Director." />
         <TextField label="Press contact email" value={state.pressContactEmail} onChange={(v) => update({ pressContactEmail: v })} />
@@ -562,7 +562,7 @@ export function S16SiteCompliance() {
   if (!subjectChosen) return null;
   const showTranslation = state.pagesRequiringTranslation || state.whoProvidesTranslation;
   return (
-    <Section index="16" title="Site Compliance Pages">
+    <Section defaultOpen index="16" title="Site Compliance Pages">
       <TwoCol>
         <RadioGroup label="Privacy Policy" value={state.privacyPolicy} onChange={(v) => update({ privacyPolicy: v })} options={PRIVACY_POLICY_STATES} />
         <RadioGroup label="Terms of Service" value={state.termsOfService} onChange={(v) => update({ termsOfService: v })} options={PRIVACY_POLICY_STATES} />
@@ -581,7 +581,7 @@ export function S17SiteStructure() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="17" title="Site Structure">
+    <Section defaultOpen index="17" title="Site Structure">
       <TextArea label="Required pages list" rows={4} value={state.requiredPagesList} onChange={(v) => update({ requiredPagesList: v })} help="Beyond home/about/issues/donate — press, contact, volunteer, events, news, FAQ, etc." />
     </Section>
   );
@@ -592,7 +592,7 @@ export function S18EmailContent() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="18" title="Email Content">
+    <Section defaultOpen index="18" title="Email Content">
       <TextArea label="Welcome email content" rows={4} value={state.welcomeEmailContent} onChange={(v) => update({ welcomeEmailContent: v })} help="Sent on signup." />
       <TextArea label="Drip sequence content" rows={5} value={state.dripSequenceContent} onChange={(v) => update({ dripSequenceContent: v })} help="Repeating: trigger + day offset + subject + body." />
       <TextField label="Email list segmentation" optional value={state.emailListSegmentation} onChange={(v) => update({ emailListSegmentation: v })} help="donors / volunteers / members / press" />
@@ -605,7 +605,7 @@ export function S19Fundraising() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="19" title="Fundraising Page">
+    <Section defaultOpen index="19" title="Fundraising Page">
       <TextField label="Suggested donation tiers" value={state.donationTiers} onChange={(v) => update({ donationTiers: v })} placeholder="e.g. $25, $50, $100, $250, $500" />
       <RadioGroup label="Recurring donation default" value={state.recurringDonationDefault} onChange={(v) => update({ recurringDonationDefault: v })} options={['On', 'Off']} />
       {state.recurringDonationDefault === 'On' && (
@@ -622,7 +622,7 @@ export function S20VoterResources() {
   const { state, update, isCandidate } = useContent();
   if (!isCandidate) return null;
   return (
-    <Section index="20" title="Voter Resources">
+    <Section defaultOpen index="20" title="Voter Resources">
       <TwoCol>
         <TextField label="Polling place lookup link" optional value={state.pollingPlaceLookup} onChange={(v) => update({ pollingPlaceLookup: v })} />
         <TextField label="Voter registration deadline" type="date" value={state.voterRegDeadline} onChange={(v) => update({ voterRegDeadline: v })} />
@@ -639,7 +639,7 @@ export function S21Membership() {
   const { state, update, isParty } = useContent();
   if (!isParty) return null;
   return (
-    <Section index="21" title="Membership Pages">
+    <Section defaultOpen index="21" title="Membership Pages">
       <TextArea label="Membership tiers & benefits" rows={5} value={state.membershipTiersBenefits} onChange={(v) => update({ membershipTiersBenefits: v })} help="Repeating: tier name + price + benefits." />
       <TextArea label="How-to-join workflow (public copy)" rows={4} value={state.howToJoinPublicCopy} onChange={(v) => update({ howToJoinPublicCopy: v })} help="Pre-filled from Form 1 application workflow; expand to public copy." />
     </Section>
@@ -651,7 +651,7 @@ export function S22PublicGov() {
   const { state, update, isParty } = useContent();
   if (!isParty) return null;
   return (
-    <Section index="22" title="Public Governance">
+    <Section defaultOpen index="22" title="Public Governance">
       <TwoCol>
         <TextField label="Bylaws (public version) — link" value={state.bylawsPublic} onChange={(v) => update({ bylawsPublic: v })} />
         <TextField label="Platform document (public) — link" value={state.platformDocPublic} onChange={(v) => update({ platformDocPublic: v })} />
@@ -668,7 +668,7 @@ export function S23SEO() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="23" title="SEO Inputs">
+    <Section defaultOpen index="23" title="SEO Inputs">
       <TextArea label="Target keywords (issue + geographic)" rows={4} value={state.targetKeywords} onChange={(v) => update({ targetKeywords: v })} help="Repeating list." />
     </Section>
   );
@@ -679,7 +679,7 @@ export function S24Transactional() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="24" title="Transactional Pages">
+    <Section defaultOpen index="24" title="Transactional Pages">
       <TextArea label="Thank-you page content" rows={4} value={state.thankYouPageContent} onChange={(v) => update({ thankYouPageContent: v })} help="Donation, signup, RSVP — copy + next-step CTA." />
     </Section>
   );
@@ -690,7 +690,7 @@ export function S25Volunteer() {
   const { state, update, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
-    <Section index="25" title="Volunteer Page">
+    <Section defaultOpen index="25" title="Volunteer Page">
       <TextArea label="Volunteer interest categories" rows={3} value={state.volunteerCategories} onChange={(v) => update({ volunteerCategories: v })} placeholder="Phone bank, door knock, host event, lit drop, data entry, poll watcher…" />
     </Section>
   );

@@ -1,15 +1,19 @@
 /**
  * Form 3 — Website Content (Operation 1776)
  *
- * Reads Client ID from URL, pre-fills from Form 1 + Form 2 ClickUp
- * tasks via the /api/clickup-prefill route, and renders all 25
- * sections with subject-type conditional logic.
+ * Multi-stage wizard mirroring Form 1 / Brand Discovery patterns:
+ * 8 stages, framer-motion transitions, prev/next, required-field
+ * validation, "do you need this?" gates for optional content groups.
  */
 import { useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { ContentProvider, useContent } from './context/ContentContext';
 import { fetchPrefill, readClientIdFromUrl } from './lib/clickup';
 import Header from './components/Header';
+import ProgressBar from './components/ProgressBar';
+import StageShell from './components/StageShell';
 import SubjectTypeToggle from './components/SubjectTypeToggle';
+import OptInGate from './components/OptInGate';
 import {
   S1Identity, S2ACandidateBio, S2BPartyProfile, S2CLeadership,
   S3Narrative, S4Issues, S5Record, S6RiskLegal, S7Compliance,
@@ -19,68 +23,111 @@ import {
   S22PublicGov, S23SEO, S24Transactional, S25Volunteer,
 } from './components/sections';
 
-function PrefillBoot() {
-  const { state, dispatch } = useContent();
+const STAGE_LIST = [
+  { id: 'identity',    label: 'Identity',           Component: () => <Stage1Identity /> },
+  { id: 'profile',     label: 'Bio / Profile',      Component: () => <Stage2Profile /> },
+  { id: 'narrative',   label: 'Narrative',          Component: () => <Stage3Narrative /> },
+  { id: 'issues',      label: 'Issues',             Component: () => <Stage4Issues /> },
+  { id: 'record',      label: 'Record',             Component: () => <Stage5Record /> },
+  { id: 'compliance',  label: 'Compliance & Data',  Component: () => <Stage6Compliance /> },
+  { id: 'media-social',label: 'Media & Social',     Component: () => <Stage7MediaSocial /> },
+  { id: 'site-pages',  label: 'Site Pages',         Component: () => <Stage8SitePages /> },
+  { id: 'review',      label: 'Review',             Component: () => <Stage9Review /> },
+];
 
-  useEffect(() => {
-    const cid = readClientIdFromUrl();
-    dispatch({ type: 'UPDATE', payload: { clientId: cid } });
-    if (!cid) {
-      dispatch({ type: 'SET_PREFILL_STATUS', payload: { status: 'empty' } });
-      return;
-    }
-    dispatch({ type: 'SET_PREFILL_STATUS', payload: { status: 'loading' } });
-    fetchPrefill(cid)
-      .then((data) => {
-        if (!data?.found) {
-          dispatch({ type: 'SET_PREFILL_STATUS', payload: { status: 'empty' } });
-          return;
-        }
-        dispatch({
-          type: 'PREFILL',
-          payload: {
-            clickupTaskId: data.taskId || '',
-            displayName:   data.tradeName || '',
-            subjectType:   data.subjectType || '',
-            // Form 1 → Form 3 pre-fill is best-effort; fields will fill in
-            // as we wire more custom field reads on the backend.
-          },
-        });
-      })
-      .catch((err) => {
-        dispatch({ type: 'SET_PREFILL_STATUS', payload: { status: 'error', error: err.message } });
-      });
-  }, [dispatch]);
-
-  if (state.prefillStatus === 'loading') {
-    return (
-      <div className="bg-amber-50 border-y border-amber-200 text-amber-900 text-xs no-print">
-        <div className="max-w-5xl mx-auto px-6 py-2">Loading client data from ClickUp…</div>
-      </div>
-    );
-  }
-  if (state.prefillStatus === 'error') {
-    return (
-      <div className="bg-red-50 border-y border-red-200 text-red-900 text-xs no-print">
-        <div className="max-w-5xl mx-auto px-6 py-2">
-          Couldn't pre-fill from ClickUp ({state.prefillError}). You can still complete the form manually.
+function Stage1Identity() {
+  const { state } = useContent();
+  const canContinue = Boolean(state.subjectType);
+  return (
+    <StageShell number={1} title="Subject & Identity" subtitle="Confirm subject type (auto-pulled from Form 1) and the basics." isFirst canContinue={canContinue}>
+      <SubjectTypeToggle />
+      {(state.subjectType === 'candidate' || state.subjectType === 'party') && (
+        <div className="mt-4">
+          <S1Identity />
         </div>
-      </div>
-    );
-  }
-  if (state.prefillStatus === 'empty') {
-    return (
-      <div className="bg-amber-50 border-y border-amber-200 text-amber-900 text-xs no-print">
-        <div className="max-w-5xl mx-auto px-6 py-2">
-          No <code className="font-mono">?client_id=</code> in URL. Use the link from your ClickUp task to auto-fill known information.
-        </div>
-      </div>
-    );
-  }
-  return null;
+      )}
+    </StageShell>
+  );
 }
 
-function SubmitBlock() {
+function Stage2Profile() {
+  const { isCandidate, isParty } = useContent();
+  return (
+    <StageShell number={2} title={isCandidate ? 'Biography' : 'Party Profile'} subtitle={isCandidate ? 'Where the candidate comes from, and who they are.' : 'Founding, mission, structure.'}>
+      <S2ACandidateBio />
+      <S2BPartyProfile />
+      {isParty && <S2CLeadership />}
+    </StageShell>
+  );
+}
+
+function Stage3Narrative() {
+  return (
+    <StageShell number={3} title="Narrative & Messaging" subtitle="The story you tell on the homepage and 'about' pages.">
+      <S3Narrative />
+    </StageShell>
+  );
+}
+
+function Stage4Issues() {
+  return (
+    <StageShell number={4} title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars.">
+      <S4Issues />
+    </StageShell>
+  );
+}
+
+function Stage5Record() {
+  return (
+    <StageShell number={5} title="Record, Risk & Compliance" subtitle="Receipts and disclosures.">
+      <S5Record />
+      <S6RiskLegal />
+      <S7Compliance />
+    </StageShell>
+  );
+}
+
+function Stage6Compliance() {
+  const { isParty } = useContent();
+  return (
+    <StageShell number={6} title="Data Governance & Endorsements">
+      <S8DataGov />
+      {isParty && <S9Endorsed />}
+    </StageShell>
+  );
+}
+
+function Stage7MediaSocial() {
+  return (
+    <StageShell number={7} title="Events, Media & Social" subtitle="Calendar, photos, video, and every social handle you have.">
+      <S10Events />
+      <S11Media />
+      <S12Social />
+      <S13Inspiration />
+      <S14Press />
+    </StageShell>
+  );
+}
+
+function Stage8SitePages() {
+  const { isCandidate, isParty } = useContent();
+  return (
+    <StageShell number={8} title="Site Pages & Content" subtitle="Compliance pages, structure, email content, fundraising, and subject-specific extras.">
+      <S16SiteCompliance />
+      <S17SiteStructure />
+      <S18EmailContent />
+      <S19Fundraising />
+      {isCandidate && <S20VoterResources />}
+      {isParty && <S21Membership />}
+      {isParty && <S22PublicGov />}
+      <S23SEO />
+      <S24Transactional />
+      <S25Volunteer />
+    </StageShell>
+  );
+}
+
+function Stage9Review() {
   const { state, dispatch } = useContent();
   const submit = async () => {
     dispatch({ type: 'SET_SUBMIT_STATE', payload: { submitting: true, submitError: '' } });
@@ -103,97 +150,77 @@ function SubmitBlock() {
 
   if (state.submitted) {
     return (
-      <div className="my-12 p-8 rounded-2xl border border-emerald-200 bg-emerald-50 text-center">
-        <p className="font-display text-2xl text-emerald-900 uppercase mb-2">Submitted</p>
-        <p className="font-script text-xl text-emerald-700 mb-3">All set. We'll build from here.</p>
-      </div>
+      <StageShell number={9} title="Submitted" hideContinue isLast>
+        <div className="p-8 rounded-2xl border border-emerald-200 bg-emerald-50 text-center">
+          <p className="font-display text-3xl text-emerald-900 uppercase mb-2">All set</p>
+          <p className="font-script text-2xl text-emerald-700 mb-3">We'll build from here.</p>
+          <p className="text-sm text-emerald-800">
+            Your website content has been received. Op1776 will start producing site pages.
+          </p>
+        </div>
+      </StageShell>
     );
   }
-
   return (
-    <div className="my-12 p-6 rounded-2xl border border-[var(--color-op-line)] bg-white">
-      <p className="text-sm text-[var(--color-op-muted)] mb-4">
-        Once submitted, the Operation 1776 team will pick this up and start
-        producing site content. You can return to this same link to edit later.
-      </p>
-      <button
-        type="button"
-        onClick={submit}
-        disabled={state.submitting}
-        className="font-display tracking-widest px-8 py-4 rounded-lg bg-[var(--color-op-red)] text-white uppercase text-lg shadow-lg hover:bg-[var(--color-op-red-deep)] disabled:bg-[var(--color-op-muted)] transition-colors"
-      >
-        {state.submitting ? 'Submitting…' : 'Submit Content'}
-      </button>
-      {state.submitError && (
-        <p className="mt-3 text-sm text-red-700">{state.submitError}</p>
-      )}
-    </div>
-  );
-}
-
-function FormBody() {
-  const { state, subjectChosen } = useContent();
-  return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      <div className="mb-10 text-center">
-        <p className="op-section-num mb-2">FORM 3 · WEBSITE CONTENT</p>
-        <h2 className="font-display text-3xl md:text-5xl uppercase mb-3">Build the Story</h2>
-        <p className="font-script text-2xl text-[var(--color-op-red)] mb-4">Where the website actually comes from.</p>
-        <p className="text-sm text-[var(--color-op-muted)] max-w-xl mx-auto leading-relaxed">
-          Biographical content, issue elaboration, leadership profiles, endorsed
-          candidates, photos, social handles, compliance copy, and everything we'll
-          use to build out your site pages.
+    <StageShell number={9} title="Review & Submit" subtitle="One last review, then we take it from here." isLast hideContinue>
+      <div className="p-6 rounded-2xl border border-[var(--color-op-line)] bg-white">
+        <p className="text-sm text-[var(--color-op-muted)] mb-4">
+          Submitting writes to Supabase and notifies the Op1776 team in ClickUp.
+          You can return to this same link to edit later.
         </p>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={state.submitting}
+          className="font-display tracking-widest px-8 py-4 rounded-lg bg-[var(--color-op-red)] text-white uppercase text-lg shadow-lg hover:bg-[var(--color-op-red-deep)] disabled:bg-[var(--color-op-muted)] transition-colors"
+        >
+          {state.submitting ? 'Submitting…' : 'Submit Content'}
+        </button>
+        {state.submitError && (
+          <p className="mt-3 text-sm text-red-700">{state.submitError}</p>
+        )}
       </div>
-
-      <SubjectTypeToggle />
-
-      {!subjectChosen && (
-        <div className="my-8 p-4 rounded-lg border border-dashed border-[var(--color-op-line)] bg-[var(--color-op-cream)] text-sm text-[var(--color-op-muted)] text-center">
-          Pick subject type above to see all sections.
-        </div>
-      )}
-
-      {subjectChosen && (
-        <>
-          <S1Identity />
-          <S2ACandidateBio />
-          <S2BPartyProfile />
-          <S2CLeadership />
-          <S3Narrative />
-          <S4Issues />
-          <S5Record />
-          <S6RiskLegal />
-          <S7Compliance />
-          <S8DataGov />
-          <S9Endorsed />
-          <S10Events />
-          <S11Media />
-          <S12Social />
-          <S13Inspiration />
-          <S14Press />
-          <S16SiteCompliance />
-          <S17SiteStructure />
-          <S18EmailContent />
-          <S19Fundraising />
-          <S20VoterResources />
-          <S21Membership />
-          <S22PublicGov />
-          <S23SEO />
-          <S24Transactional />
-          <S25Volunteer />
-          <SubmitBlock />
-        </>
-      )}
-
-      <footer className="mt-16 mb-10 pt-6 border-t border-[var(--color-op-line)] text-center text-xs text-[var(--color-op-muted)]">
-        <p>Operation 1776 · Website Content · {state.clientId ? `client ${state.clientId}` : 'no client_id loaded'}</p>
-      </footer>
-    </main>
+    </StageShell>
   );
 }
 
-function HeaderWithClientId() {
+function PrefillBoot() {
+  const { state, dispatch } = useContent();
+  useEffect(() => {
+    const cid = readClientIdFromUrl();
+    dispatch({ type: 'UPDATE', payload: { clientId: cid } });
+    if (!cid) return;
+    fetchPrefill(cid)
+      .then((data) => {
+        if (!data?.found) return;
+        dispatch({
+          type: 'PREFILL',
+          payload: {
+            clickupTaskId: data.taskId || '',
+            displayName:   data.tradeName || '',
+            subjectType:   data.subjectType || '',
+          },
+        });
+      })
+      .catch(() => { /* silent */ });
+  }, [dispatch]);
+  return null;
+}
+
+function Wizard() {
+  const { state } = useContent();
+  const Stage = STAGE_LIST[state.currentStage]?.Component;
+  return (
+    <>
+      <ProgressBar stages={STAGE_LIST} />
+      <AnimatePresence mode="wait">
+        {Stage && <Stage key={state.currentStage} />}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function HeaderWithClient() {
   const { state } = useContent();
   return <Header subjectLabel="Website Content" clientId={state.clientId} />;
 }
@@ -202,9 +229,9 @@ export default function App() {
   return (
     <ContentProvider>
       <div className="op-paper min-h-screen pb-20">
-        <HeaderWithClientId />
+        <HeaderWithClient />
         <PrefillBoot />
-        <FormBody />
+        <Wizard />
       </div>
     </ContentProvider>
   );
