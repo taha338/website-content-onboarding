@@ -198,12 +198,37 @@ function PrefillBoot() {
     fetchPrefill(cid)
       .then((data) => {
         if (!data?.found) return;
+        const brand    = data.brand    || {};
+        const campaign = data.campaign || {};
         dispatch({
           type: 'PREFILL',
           payload: {
             clickupTaskId: data.taskId || '',
-            displayName:   data.tradeName || '',
-            subjectType:   data.subjectType || '',
+            // Active Clients master
+            displayName:    data.tradeName || campaign.displayName || '',
+            subjectType:    data.subjectType || brand.subject_type || '',
+            primaryName:    data.contact?.name  || '',
+            primaryEmail:   data.contact?.email || '',
+            primaryPhone:   data.contact?.phone || '',
+            // Form 1 (campaign_intakes)
+            ...(campaign.voiceTone      ? { voiceTone:      campaign.voiceTone } : {}),
+            ...(campaign.voiceToneNotes ? { voiceToneNotes: campaign.voiceToneNotes } : {}),
+            ...(campaign.primaryDomain  ? { primaryDomain:  campaign.primaryDomain } : {}),
+            ...(campaign.campaignSlogan ? { tagline:        campaign.campaignSlogan } : {}),
+            // Form 2 (brand_submissions)
+            ...(brand.existing_logo_url ? { existingLogoUrl: brand.existing_logo_url } : {}),
+            ...(brand.brand_core        ? { brandCore:       brand.brand_core } : {}),
+            ...(brand.color_primary     ? { colorPrimary:    brand.color_primary } : {}),
+            ...(brand.color_secondary   ? { colorSecondary:  brand.color_secondary } : {}),
+            ...(brand.color_accent      ? { colorAccent:     brand.color_accent } : {}),
+            ...(brand.color_background  ? { colorBackground: brand.color_background } : {}),
+            ...(brand.color_text        ? { colorText:       brand.color_text } : {}),
+            ...(brand.color_highlight   ? { colorHighlight:  brand.color_highlight } : {}),
+            ...(brand.font_heading      ? { fontHeading:     brand.font_heading } : {}),
+            ...(brand.font_body         ? { fontBody:        brand.font_body } : {}),
+            ...(brand.candidate_name    ? { candidateName:   brand.candidate_name } : {}),
+            ...(brand.candidate_office  ? { officeRunning:   brand.candidate_office } : {}),
+            ...(brand.party_name        ? { partyName:       brand.party_name } : {}),
           },
         });
       })

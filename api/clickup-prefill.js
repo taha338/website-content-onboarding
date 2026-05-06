@@ -1,28 +1,35 @@
 /**
- * GET /api/clickup-prefill?clientId=<id>
+ * GET /api/clickup-prefill?clientId=<id>  — Form 3 (Website Content)
  *
- * Server-side proxy to ClickUp. Fetches the master Active Clients task
- * matching `Client ID = <id>` and returns a sanitized prefill payload
- * the form can use to auto-populate Section A and B.
+ * Pre-fills from:
+ *   1. Active Clients master row (ClickUp)
+ *   2. Form 2 brand_submissions (Supabase) — logo, colors, fonts, candidate basics
+ *   3. Form 1 campaign_intakes (Supabase) — voice/tone, mission, slogan if captured
  *
- * Required env vars (set in Vercel project settings):
- *   - CLICKUP_API_TOKEN        — ClickUp personal API token (server-side only)
- *   - CLICKUP_ACTIVE_CLIENTS_LIST_ID  — defaults to 901113554047 if not set
- *
- * Optional env var overrides for custom field names (defaults shown):
- *   - CLICKUP_FIELD_CLIENT_ID         "Client ID"
- *   - CLICKUP_FIELD_TRADE_NAME        "DBA / Trade Name*"
- *   - CLICKUP_FIELD_PRIMARY_NAME      "Primary Contact Name*"
- *   - CLICKUP_FIELD_PRIMARY_EMAIL     "Primary Contact Email*"
- *   - CLICKUP_FIELD_PRIMARY_PHONE     "Primary Contact Phone*"
+ * Required env vars:
+ *   - CLICKUP_API_TOKEN
+ *   - SUPABASE_URL
+ *   - SUPABASE_SECRET_KEY
  */
 
+import { createClient } from '@supabase/supabase-js';
+
 const FIELDS = {
-  clientId:    process.env.CLICKUP_FIELD_CLIENT_ID    || 'Client ID',
-  tradeName:   process.env.CLICKUP_FIELD_TRADE_NAME   || 'DBA / Trade Name*',
-  primaryName: process.env.CLICKUP_FIELD_PRIMARY_NAME || 'Primary Contact Name*',
-  primaryEmail:process.env.CLICKUP_FIELD_PRIMARY_EMAIL|| 'Primary Contact Email*',
-  primaryPhone:process.env.CLICKUP_FIELD_PRIMARY_PHONE|| 'Primary Contact Phone*',
+  clientId:       'Client ID',
+  tradeName:      'DBA / Trade Name*',
+  primaryName:    'Primary Contact Name*',
+  primaryEmail:   'Primary Contact Email*',
+  primaryPhone:   'Primary Contact Phone*',
+  secondaryName:  'Secondary Contact Name',
+  secondaryEmail: 'Secondary Contact Email',
+  secondaryRole:  'Secondary Contact Role',
+  commPref:       'Communication Preference*',
+  packageSel:     'Package Selected**',
+  industry:       'Industry / Niche',
+  subjectType:    'Subject Type',
+  form1RowId:     'Form 1 Supabase Row ID',
+  form2RowId:     'Form 2 Supabase Row ID',
+  form3RowId:     'Form 3 Supabase Row ID',
 };
 
 function findFieldValue(customFields, label) {
@@ -53,14 +60,11 @@ export default async function handler(req, res) {
   const token = process.env.CLICKUP_API_TOKEN;
   const listId = process.env.CLICKUP_ACTIVE_CLIENTS_LIST_ID || '901113554047';
   if (!token) {
-    return res.status(500).json({ error: 'CLICKUP_API_TOKEN not configured on the server' });
+    return res.status(500).json({ error: 'CLICKUP_API_TOKEN not configured' });
   }
 
-  // ClickUp doesn't support filtering by custom field value via REST in a clean
-  // way without iterating, so we fetch the list and find the matching task.
-  // For 12 tasks this is fine; if the list grows beyond a few hundred we should
-  // switch to the Search API or maintain a separate "active clients" table.
   try {
+    // ── 1. Active Clients master ──
     const url = `https://api.clickup.com/api/v2/list/${encodeURIComponent(listId)}/task?include_closed=true&subtasks=false`;
     const upstream = await fetch(url, {
       method: 'GET',
@@ -71,8 +75,7 @@ export default async function handler(req, res) {
       return res.status(upstream.status).json({ error: 'ClickUp API failed', detail: body.slice(0, 500) });
     }
     const data = await upstream.json();
-    const tasks = data.tasks || [];
-    const match = tasks.find((t) =>
+    const match = (data.tasks || []).find((t) =>
       (t.custom_fields || []).some(
         (cf) => cf.name?.toLowerCase().trim() === FIELDS.clientId.toLowerCase().trim()
           && String(cf.value || '').toLowerCase() === clientId.toLowerCase()
@@ -81,20 +84,78 @@ export default async function handler(req, res) {
     if (!match) {
       return res.status(200).json({ found: false });
     }
+
     const cfs = match.custom_fields || [];
+    const subjectType = findFieldValue(cfs, FIELDS.subjectType);
+    const form1RowId  = findFieldValue(cfs, FIELDS.form1RowId);
+    const form2RowId  = findFieldValue(cfs, FIELDS.form2RowId);
+
     const payload = {
       found: true,
-      taskId: match.id,
+      taskId:   match.id,
       taskName: match.name,
-      taskUrl: match.url,
-      clientId: findFieldValue(cfs, FIELDS.clientId),
+      taskUrl:  match.url,
+      clientId:  findFieldValue(cfs, FIELDS.clientId),
       tradeName: findFieldValue(cfs, FIELDS.tradeName),
+      subjectType: typeof subjectType === 'string' ? subjectType.toLowerCase() : null,
       contact: {
-        name:  findFieldValue(cfs, FIELDS.primaryName),
-        email: findFieldValue(cfs, FIELDS.primaryEmail),
-        phone: findFieldValue(cfs, FIELDS.primaryPhone),
+        name:           findFieldValue(cfs, FIELDS.primaryName),
+        email:          findFieldValue(cfs, FIELDS.primaryEmail),
+        phone:          findFieldValue(cfs, FIELDS.primaryPhone),
+        secondaryName:  findFieldValue(cfs, FIELDS.secondaryName),
+        secondaryEmail: findFieldValue(cfs, FIELDS.secondaryEmail),
+        secondaryRole:  findFieldValue(cfs, FIELDS.secondaryRole),
       },
+      meta: {
+        communicationPreference: findFieldValue(cfs, FIELDS.commPref),
+        packageSelected:         findFieldValue(cfs, FIELDS.packageSel),
+        industry:                findFieldValue(cfs, FIELDS.industry),
+      },
+      siblingForms: { form1RowId, form2RowId },
+      brand:    null,
+      campaign: null,
     };
+
+    // ── 2. Cross-form Supabase lookups ──
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const secretKey   = process.env.SUPABASE_SECRET_KEY;
+    if (supabaseUrl && secretKey) {
+      const supabase = createClient(supabaseUrl, secretKey, { auth: { persistSession: false } });
+      const lookups = [];
+      if (form2RowId) {
+        lookups.push(
+          supabase.from('brand_submissions')
+            .select('subject_type, candidate_name, candidate_office, candidate_state, candidate_district, election_year, party_affiliation, race_focus, candidate_type, party_name, party_acronym, party_type, party_scope, party_state, party_founded_year, brand_core, sub_direction, logo_type, existing_logo_url, color_primary, color_secondary, color_accent, color_background, color_text, color_highlight, font_heading, font_body, backgrounds, policy_priorities')
+            .eq('id', form2RowId)
+            .maybeSingle()
+            .then(({ data }) => { if (data) payload.brand = data; })
+            .catch(() => {})
+        );
+      }
+      if (form1RowId) {
+        lookups.push(
+          supabase.from('campaign_intakes')
+            .select('id, subject_type, payload')
+            .eq('id', form1RowId)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (!data) return;
+              const p = data.payload || {};
+              payload.campaign = {
+                displayName:     p.displayName || null,
+                voiceTone:       p.voiceTone || null,
+                voiceToneNotes:  p.voiceToneNotes || null,
+                primaryDomain:   p.primaryDomain || null,
+                socialHandles:   p.socialHandles || null,
+                campaignSlogan:  p.workingCampaignSlogan || p.campaignSlogan || null,
+              };
+            })
+            .catch(() => {})
+        );
+      }
+      await Promise.all(lookups);
+    }
+
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json(payload);
   } catch (err) {
