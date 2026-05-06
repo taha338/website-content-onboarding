@@ -128,7 +128,6 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     body: JSON.stringify({
       name: taskName,
       description,
-      status: 'open',
       tags: [`subject:${state.subjectType}`],
     }),
   });
