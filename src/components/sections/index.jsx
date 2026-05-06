@@ -16,6 +16,42 @@ import {
   TRANSLATION_PROVIDERS, HOSTING_PREFERENCE,
 } from '../../lib/options';
 
+/**
+ * Shown wherever the form asks for Drive / Dropbox / WeTransfer links.
+ * Without these sharing settings, the Op1776 team can't open the files.
+ */
+function SharingInstructions() {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4 text-sm leading-relaxed">
+      <p className="font-display tracking-wide text-amber-900 uppercase text-xs mb-2">
+        ⚠ Important — set sharing permissions before pasting
+      </p>
+      <p className="text-amber-900 mb-2">
+        We can't open private folders. For every link you paste below, please make sure:
+      </p>
+      <ul className="list-disc ml-5 text-amber-900 space-y-1">
+        <li>
+          <strong>Google Drive:</strong> right-click the file/folder → <em>Share</em> →
+          change <em>"Restricted"</em> to <strong>"Anyone with the link"</strong> →
+          access set to <strong>Viewer</strong> → <em>Copy link</em>.
+        </li>
+        <li>
+          <strong>Dropbox:</strong> hover the file/folder → <em>Share</em> → toggle
+          <strong> "Anyone with this link can view"</strong> ON → <em>Copy link</em>.
+        </li>
+        <li>
+          <strong>WeTransfer:</strong> use the public download link from your transfer email.
+          Note: WeTransfer links expire after 7 days — Drive/Dropbox is preferred.
+        </li>
+      </ul>
+      <p className="text-amber-800 text-xs mt-2 italic">
+        If we get a "you need access" error, your campaign timeline may slip while we
+        wait for permissions.
+      </p>
+    </div>
+  );
+}
+
 /* ─── 1. Identity ─── */
 export function S1Identity() {
   const { state, update } = useContent();
@@ -206,6 +242,7 @@ export function S2CLeadership() {
   if (!isParty) return null;
   return (
     <Section defaultOpen index="2C" title="Leadership Profiles" subtitle="One block per public-facing leader.">
+      <SharingInstructions />
       <RepeatingBlock
         items={state.leadershipProfiles}
         onAdd={() => addRepeating('leadershipProfiles', { name: '', title: '', shortBio: '', longBio: '', headshot: '', cityState: '', background: '', joinedYear: '', socialHandles: '', quote: '' })}
@@ -459,6 +496,7 @@ export function S11Media() {
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="11" title="Media Library" subtitle="Paste Drive/Dropbox/WeTransfer links to assets. Direct upload coming in v1.">
+      <SharingInstructions />
       {isCandidate && (
         <>
           <TwoCol>
@@ -681,6 +719,7 @@ export function S22PublicGov() {
   if (!isParty) return null;
   return (
     <Section defaultOpen index="22" title="Public Governance">
+      <SharingInstructions />
       <TwoCol>
         <TextField label="Bylaws (public version) — link" value={state.bylawsPublic} onChange={(v) => update({ bylawsPublic: v })} />
         <TextField label="Platform document (public) — link" value={state.platformDocPublic} onChange={(v) => update({ platformDocPublic: v })} />
