@@ -152,6 +152,15 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
       await setCustomField(activeClientTask.id, u.fid, u.value)
         .catch((e) => console.error('[website-content] master update failed:', u.fid, e.message));
     }
+
+    // Edit-propagation: if the user updated display name (DBA / Trade Name)
+    // in the form, write it back to Active Clients master.
+    const masterFieldByName = {};
+    for (const cf of activeClientTask.custom_fields || []) masterFieldByName[cf.name] = cf;
+    if (state.displayName && masterFieldByName['DBA / Trade Name*']?.id) {
+      await setCustomField(activeClientTask.id, masterFieldByName['DBA / Trade Name*'].id, String(state.displayName).trim())
+        .catch((e) => console.error('[website-content] DBA propagation failed:', e.message));
+    }
   }
 
   return { task_id: newTask.id, active_client_id: activeClientTask?.id || null };
@@ -212,6 +221,8 @@ function formatValue(v) {
 async function syncSheets({ state, clientId, submittedAt, supabaseRowId }) {
   const url = process.env.SHEETS_WEBHOOK_URL;
   if (!url) return;
+  // Strip clientId from payload (already at top level)
+  const { clientId: _drop, ...payload } = state || {};
   await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -220,7 +231,7 @@ async function syncSheets({ state, clientId, submittedAt, supabaseRowId }) {
       client_id: clientId,
       submitted_at: submittedAt,
       supabase_row_id: supabaseRowId,
-      payload: state,
+      payload,
     }),
   });
 }
