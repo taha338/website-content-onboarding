@@ -14,6 +14,31 @@ const initial = {
   prefillStatus: 'idle',
   prefillError: '',
 
+  // Per-item opt-ins for sections that mirror the Wix form's checkbox
+  // gating (1.4 service, 1.5 personal, 4 endorsements, 5.1 photos,
+  // 5.2 video, 6 social handles). When false, the corresponding fields
+  // are hidden and not required.
+  optIns: {
+    // 1.4 Service & Civic Engagement
+    military: false, electedOffices: false, boards: false,
+    nonprofit: false, faith: false, profAssoc: false, otherExp: false,
+    // 1.5 Personal / humanizing
+    spouse: false, children: false, pets: false, religion: false,
+    languages: false, hobbies: false, favSpot: false,
+    // 4 Endorsements & Social Proof
+    securedEnd: false, pursuingEnd: false, quotes: false, notableSupp: false,
+    // 5.1 Required photos (each toggle = "we have this asset")
+    primaryHeadshot: false, secondaryHeadshot: false, candidateWithFamily: false,
+    candidateInCommunity: false, candidateWithConstituents: false,
+    lifestyle: false, heroBanner: false,
+    // 5.2 Video
+    launchVideo: false, intro30s: false, bRoll: false, adCreative: false,
+    // 6 Social Media handles
+    facebook: false, instagram: false, twitter: false, tiktok: false,
+    youtube: false, linkedinCandidate: false, linkedinCampaign: false,
+    threads: false, bluesky: false, otherSocial: false,
+  },
+
   // Wizard navigation
   currentStage: 0,
   completedStages: [],
@@ -162,6 +187,15 @@ const initial = {
   bRollUploads: '',
   captioningVendor: '',
   existingPhotoLibrary: '',
+  launchVideoLink: '',
+  intro30sLink: '',
+  adCreativeLink: '',
+  pursuingEndorsements: '',
+  quotesAvailable: '',
+  linkedinCandidate: '',
+  linkedinCampaign: '',
+  threads: '',
+  bluesky: '',
 
   // 12. Social Media
   facebook: '', instagram: '', twitter: '', youtube: '',
@@ -247,6 +281,8 @@ function reducer(state, action) {
       return { ...state, prefillStatus: action.payload.status, prefillError: action.payload.error || '' };
     case 'UPDATE':
       return { ...state, ...action.payload };
+    case 'UPDATE_OPTIN':
+      return { ...state, optIns: { ...state.optIns, ...action.payload } };
     case 'UPDATE_REPEATING':
       return {
         ...state,
@@ -284,6 +320,7 @@ export function ContentProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
 
   const update = useCallback((payload) => dispatch({ type: 'UPDATE', payload }), []);
+  const updateOptIn = useCallback((payload) => dispatch({ type: 'UPDATE_OPTIN', payload }), []);
   const updateIssue = useCallback((index, payload) => dispatch({ type: 'UPDATE_ISSUE', index, payload }), []);
   const updateRepeating = useCallback((field, index, payload) =>
     dispatch({ type: 'UPDATE_REPEATING', field, index, payload }), []);
@@ -307,10 +344,10 @@ export function ContentProvider({ children }) {
   }, []);
 
   const value = useMemo(() => ({
-    state, dispatch, update, updateIssue, updateRepeating, addRepeating, removeRepeating,
+    state, dispatch, update, updateOptIn, updateIssue, updateRepeating, addRepeating, removeRepeating,
     isParty, isCandidate, subjectChosen,
     goToStage, nextStage, prevStage,
-  }), [state, update, updateIssue, updateRepeating, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen, goToStage, nextStage, prevStage]);
+  }), [state, update, updateOptIn, updateIssue, updateRepeating, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen, goToStage, nextStage, prevStage]);
 
   return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
 }

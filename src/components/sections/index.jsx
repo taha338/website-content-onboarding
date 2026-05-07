@@ -10,6 +10,7 @@ import {
   Section, TextField, TextArea, Select, RadioGroup, TwoCol,
 } from '../Field';
 import RepeatingBlock from '../RepeatingBlock';
+import SectionToggle from '../SectionToggle';
 import {
   YES_NO, YES_NO_PARTIAL, RECURRING_FREQUENCY,
   PRIVACY_POLICY_STATES, COOKIE_CONSENT,
@@ -92,10 +93,12 @@ export function S1Identity() {
 
 /* ─── 2A. Candidate Biography ─── */
 export function S2ACandidateBio() {
-  const { state, update, updateRepeating, addRepeating, removeRepeating, isCandidate } = useContent();
+  const { state, update, updateOptIn, updateRepeating, addRepeating, removeRepeating, isCandidate } = useContent();
   if (!isCandidate) return null;
+  const o = state.optIns || {};
   return (
     <Section defaultOpen index="2A" title="Candidate Biography">
+      {/* 1.1 Origins */}
       <TwoCol>
         <TextField label="Born (city, state)" value={state.bornCityState} onChange={(v) => update({ bornCityState: v })} />
         <TextField label="Raised (if different)" optional value={state.raised} onChange={(v) => update({ raised: v })} />
@@ -106,6 +109,7 @@ export function S2ACandidateBio() {
       </TwoCol>
       <TextArea label="If not from here — what brought them?" optional rows={3} value={state.whatBroughtThem} onChange={(v) => update({ whatBroughtThem: v })} />
 
+      {/* 1.2 Education */}
       <RepeatingBlock
         label="Education"
         items={state.education}
@@ -120,33 +124,60 @@ export function S2ACandidateBio() {
         )}
       />
 
+      {/* 1.3 Professional history */}
       <TextArea label="Roles, companies, years (most recent first)" rows={4} value={state.rolesCompanies} onChange={(v) => update({ rolesCompanies: v })} />
       <TwoCol>
         <TextField label="Current occupation / title" value={state.currentOccupation} onChange={(v) => update({ currentOccupation: v })} />
         <RadioGroup label="Continue working during the race?" value={state.willContinueWorking} onChange={(v) => update({ willContinueWorking: v })} options={YES_NO_PARTIAL} />
       </TwoCol>
 
-      <TextArea label="Elected / appointed offices held" optional rows={3} value={state.electedOfficesHeld} onChange={(v) => update({ electedOfficesHeld: v })} />
-      <TextArea label="Boards and commissions" optional rows={3} value={state.boardsCommissions} onChange={(v) => update({ boardsCommissions: v })} />
-      <TextArea label="Professional associations" optional rows={3} value={state.professionalAssociations} onChange={(v) => update({ professionalAssociations: v })} />
-      <TextArea label="Military service" optional rows={2} value={state.militaryService} onChange={(v) => update({ militaryService: v })} help="Branch / dates / rank" />
-      <TextArea label="Nonprofit / volunteer work" optional rows={3} value={state.nonprofitVolunteer} onChange={(v) => update({ nonprofitVolunteer: v })} />
-      <TextArea label="Awards, honors, notable press hits, published work" optional rows={3} value={state.awardsHonors} onChange={(v) => update({ awardsHonors: v })} />
+      {/* 1.4 Service & Civic Engagement — toggle-gated, only required if checked */}
+      <p className="op-section-num pt-4">1.4 SERVICE & CIVIC ENGAGEMENT</p>
+      <p className="op-help">Check the items that apply. Each one will expand for details.</p>
 
-      <p className="op-section-num pt-4">FAMILY</p>
-      <TwoCol>
-        <TextField label="Spouse / partner name" optional value={state.spouseName} onChange={(v) => update({ spouseName: v })} />
-        <TextField label="Children's names and ages" optional value={state.childrenAges} onChange={(v) => update({ childrenAges: v })} />
-      </TwoCol>
-      <TextArea label="Family bios — quotes / photos / role in campaign" optional rows={3} value={state.familyBios} onChange={(v) => update({ familyBios: v })} />
-      <TwoCol>
-        <TextField label="Pets" optional value={state.pets} onChange={(v) => update({ pets: v })} />
-        <TextField label="Religion / faith" optional value={state.religion} onChange={(v) => update({ religion: v })} />
-      </TwoCol>
-      <TwoCol>
-        <TextField label="Hobbies / interests" optional value={state.hobbies} onChange={(v) => update({ hobbies: v })} />
-        <TextField label="Favorite local spots" optional value={state.favoriteSpots} onChange={(v) => update({ favoriteSpots: v })} />
-      </TwoCol>
+      <SectionToggle label="Military Service" help="Branch / dates / rank — include only if disclosable." checked={!!o.military} onChange={(v) => updateOptIn({ military: v })}>
+        <TextArea label="Branch, years served, rank, honors, deployments" rows={2} value={state.militaryService} onChange={(v) => update({ militaryService: v })} />
+      </SectionToggle>
+      <SectionToggle label="Elected / Appointed Offices Held" checked={!!o.electedOffices} onChange={(v) => updateOptIn({ electedOffices: v })}>
+        <TextArea label="Every prior office — level, dates, key accomplishments" rows={3} value={state.electedOfficesHeld} onChange={(v) => update({ electedOfficesHeld: v })} />
+      </SectionToggle>
+      <SectionToggle label="Boards and Commissions" checked={!!o.boards} onChange={(v) => updateOptIn({ boards: v })}>
+        <TextArea label="Nonprofit boards, government commissions, industry groups" rows={3} value={state.boardsCommissions} onChange={(v) => update({ boardsCommissions: v })} />
+      </SectionToggle>
+      <SectionToggle label="Nonprofit / Volunteer Work" checked={!!o.nonprofit} onChange={(v) => updateOptIn({ nonprofit: v })}>
+        <TextArea label="Sustained volunteer roles — organization, role, dates" rows={3} value={state.nonprofitVolunteer} onChange={(v) => update({ nonprofitVolunteer: v })} />
+      </SectionToggle>
+      <SectionToggle label="Faith Community Roles" help="Only include if candidate wants this disclosed publicly." checked={!!o.faith} onChange={(v) => updateOptIn({ faith: v })}>
+        <TextArea label="Religion / faith and any public role" rows={2} value={state.religion} onChange={(v) => update({ religion: v })} />
+      </SectionToggle>
+      <SectionToggle label="Professional Associations" help="Bar, medical, trade, alumni — organizations relevant to the candidate's identity." checked={!!o.profAssoc} onChange={(v) => updateOptIn({ profAssoc: v })}>
+        <TextArea label="Professional associations" rows={3} value={state.professionalAssociations} onChange={(v) => update({ professionalAssociations: v })} />
+      </SectionToggle>
+
+      {/* 1.5 Personal / humanizing */}
+      <p className="op-section-num pt-4">1.5 PERSONAL / HUMANIZING</p>
+      <p className="op-help">Voters connect with humans, not résumés. Include only what's intended for public copy.</p>
+
+      <SectionToggle label="Spouse / Partner Name" help="Include only if featuring on the site." checked={!!o.spouse} onChange={(v) => updateOptIn({ spouse: v })}>
+        <TextField label="Spouse / partner name" value={state.spouseName} onChange={(v) => update({ spouseName: v })} />
+        <TextArea label="Family bios — quotes / photos / role in campaign" optional rows={3} value={state.familyBios} onChange={(v) => update({ familyBios: v })} />
+      </SectionToggle>
+      <SectionToggle label="Children's Names and Ages" help="Minors require extra care with photos." checked={!!o.children} onChange={(v) => updateOptIn({ children: v })}>
+        <TextField label="Children's names and ages" value={state.childrenAges} onChange={(v) => update({ childrenAges: v })} />
+      </SectionToggle>
+      <SectionToggle label="Pets" checked={!!o.pets} onChange={(v) => updateOptIn({ pets: v })}>
+        <TextField label="Pets — names, species, rescue story if applicable" value={state.pets} onChange={(v) => update({ pets: v })} />
+      </SectionToggle>
+      <SectionToggle label="Hobbies and Interests" checked={!!o.hobbies} onChange={(v) => updateOptIn({ hobbies: v })}>
+        <TextField label="Hobbies / interests" value={state.hobbies} onChange={(v) => update({ hobbies: v })} />
+      </SectionToggle>
+      <SectionToggle label="Favorite Local Spot" help="Diners, parks, small businesses — great for social and B-roll." checked={!!o.favSpot} onChange={(v) => updateOptIn({ favSpot: v })}>
+        <TextField label="Favorite local spots" value={state.favoriteSpots} onChange={(v) => update({ favoriteSpots: v })} />
+      </SectionToggle>
+
+      {/* 1.6 Recognition (always optional) */}
+      <p className="op-section-num pt-4">1.6 RECOGNITION</p>
+      <TextArea label="Awards, honors, notable press hits, published work" optional rows={3} value={state.awardsHonors} onChange={(v) => update({ awardsHonors: v })} help="With dates and sources." />
     </Section>
   );
 }
@@ -360,14 +391,15 @@ export function S4Issues() {
 
 /* ─── 5. Record & Receipts ─── */
 export function S5Record() {
-  const { state, update, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, update, updateOptIn, isParty, isCandidate, subjectChosen } = useContent();
   if (!subjectChosen) return null;
+  const o = state.optIns || {};
   return (
     <Section defaultOpen index="5" title="Record &amp; Receipts">
       {isCandidate && (
         <>
-          <TextArea label="Top 5 votes to highlight" rows={4} value={state.topVotesHighlight} onChange={(v) => update({ topVotesHighlight: v })} help="Bill #, date, summary." />
-          <TextArea label="Votes likely to be attacked — preempt strategy" rows={3} value={state.votesAttackedPreempt} onChange={(v) => update({ votesAttackedPreempt: v })} />
+          <TextArea label="Top 5 votes to highlight" rows={4} optional value={state.topVotesHighlight} onChange={(v) => update({ topVotesHighlight: v })} help="Incumbents only. Bill #, date, summary per vote." />
+          <TextArea label="Votes likely to be attacked — preempt strategy" rows={3} optional value={state.votesAttackedPreempt} onChange={(v) => update({ votesAttackedPreempt: v })} help="Incumbents only." />
         </>
       )}
       {isParty && (
@@ -376,8 +408,22 @@ export function S5Record() {
           <TextArea label="Past endorsements made by the party (historical)" rows={4} value={state.pastEndorsementsByParty} onChange={(v) => update({ pastEndorsementsByParty: v })} help="Distinct from current cycle slate (Section 9)." />
         </>
       )}
-      <TextArea label="Secured endorsements" rows={3} value={state.securedEndorsements} onChange={(v) => update({ securedEndorsements: v })} help="Org/individual, date, URL/permission." />
-      <TextArea label="Notable supporters (non-endorsement)" rows={3} value={state.notableSupporters} onChange={(v) => update({ notableSupporters: v })} help="Up to 10 entries." />
+
+      <p className="op-section-num pt-4">ENDORSEMENTS & SOCIAL PROOF</p>
+      <p className="op-help">Check what applies. Each one expands for details.</p>
+
+      <SectionToggle label="Secured endorsements (org/individual, date, URL/permission)" checked={!!o.securedEnd} onChange={(v) => updateOptIn({ securedEnd: v })}>
+        <TextArea label="Organization or individual — date endorsed — public URL or file-on-permission proof" rows={3} value={state.securedEndorsements} onChange={(v) => update({ securedEndorsements: v })} />
+      </SectionToggle>
+      <SectionToggle label="Pursuing / pending endorsements (who, by when, owner)" checked={!!o.pursuingEnd} onChange={(v) => updateOptIn({ pursuingEnd: v })}>
+        <TextArea label="Who is being pursued, by when, and who owns the ask" rows={3} value={state.pursuingEndorsements || ''} onChange={(v) => update({ pursuingEndorsements: v })} />
+      </SectionToggle>
+      <SectionToggle label="Quotes Available for Use" checked={!!o.quotes} onChange={(v) => updateOptIn({ quotes: v })}>
+        <TextArea label="Each quote needs: full name, title/affiliation, signed release or documented consent" rows={3} value={state.quotesAvailable || ''} onChange={(v) => update({ quotesAvailable: v })} />
+      </SectionToggle>
+      <SectionToggle label="Notable supporters (non-endorsement)" checked={!!o.notableSupp} onChange={(v) => updateOptIn({ notableSupp: v })}>
+        <TextArea label="People who've donated, hosted, or vouched informally — with permission status" rows={3} value={state.notableSupporters} onChange={(v) => update({ notableSupporters: v })} />
+      </SectionToggle>
       {isCandidate && (
         <TextArea label="Personal endorsements (pastors, community leaders)" optional rows={3} value={state.personalEndorsements} onChange={(v) => update({ personalEndorsements: v })} help="Repeating: name + role + quote + photo link" />
       )}
@@ -492,26 +538,38 @@ export function S10Events() {
 
 /* ─── 11. Media Library ─── */
 export function S11Media() {
-  const { state, update, isCandidate, isParty, subjectChosen } = useContent();
+  const { state, update, updateOptIn, isCandidate, isParty, subjectChosen } = useContent();
   if (!subjectChosen) return null;
+  const o = state.optIns || {};
   return (
-    <Section defaultOpen index="11" title="Media Library" subtitle="Paste Drive/Dropbox/WeTransfer links to assets. Direct upload coming in v1.">
+    <Section defaultOpen index="11" title="Media Library" subtitle="Check the assets that exist. Paste Drive/Dropbox/WeTransfer links for what you have.">
       <SharingInstructions />
       {isCandidate && (
         <>
-          <TwoCol>
+          <p className="op-section-num">5.1 REQUIRED PHOTOS</p>
+          <p className="op-help">Check available — flag the gap if missing so production can begin in parallel with copy.</p>
+
+          <SectionToggle label="Primary Headshot" help="Professional, min 2000px wide, neutral background." checked={!!o.primaryHeadshot} onChange={(v) => updateOptIn({ primaryHeadshot: v })}>
             <TextField label="Primary headshot — link" value={state.primaryHeadshot} onChange={(v) => update({ primaryHeadshot: v })} />
-            <TextField label="Secondary headshot — link" optional value={state.secondaryHeadshot} onChange={(v) => update({ secondaryHeadshot: v })} />
-          </TwoCol>
-          <TwoCol>
-            <TextField label="Candidate with family — link" optional value={state.candidateWithFamily} onChange={(v) => update({ candidateWithFamily: v })} />
-            <TextField label="Candidate in community — link" optional value={state.candidateInCommunity} onChange={(v) => update({ candidateInCommunity: v })} />
-          </TwoCol>
-          <TwoCol>
-            <TextField label="Candidate with constituents — link" optional value={state.candidateWithConstituents} onChange={(v) => update({ candidateWithConstituents: v })} />
+          </SectionToggle>
+          <SectionToggle label="Secondary Headshot" help="Alternate expression / pose." checked={!!o.secondaryHeadshot} onChange={(v) => updateOptIn({ secondaryHeadshot: v })}>
+            <TextField label="Secondary headshot — link" value={state.secondaryHeadshot} onChange={(v) => update({ secondaryHeadshot: v })} />
+          </SectionToggle>
+          <SectionToggle label="Candidate with Family" help="Only if family is being featured." checked={!!o.candidateWithFamily} onChange={(v) => updateOptIn({ candidateWithFamily: v })}>
+            <TextField label="Candidate with family — link" value={state.candidateWithFamily} onChange={(v) => update({ candidateWithFamily: v })} />
+          </SectionToggle>
+          <SectionToggle label="Candidate in Community" help="Door-knocking, speaking, events." checked={!!o.candidateInCommunity} onChange={(v) => updateOptIn({ candidateInCommunity: v })}>
+            <TextField label="Candidate in community — link" value={state.candidateInCommunity} onChange={(v) => update({ candidateInCommunity: v })} />
+          </SectionToggle>
+          <SectionToggle label="Candidate with Constituents" help="Diverse, authentic, not staged-looking." checked={!!o.candidateWithConstituents} onChange={(v) => updateOptIn({ candidateWithConstituents: v })}>
+            <TextField label="Candidate with constituents — link" value={state.candidateWithConstituents} onChange={(v) => update({ candidateWithConstituents: v })} />
+          </SectionToggle>
+          <SectionToggle label="Lifestyle / Environmental Shot" help="Wide aspect, space for overlay text." checked={!!o.lifestyle} onChange={(v) => updateOptIn({ lifestyle: v })}>
+            <TextField label="Lifestyle / environmental shot — link" value={state.otherCandidatePhoto} onChange={(v) => update({ otherCandidatePhoto: v })} />
+          </SectionToggle>
+          <SectionToggle label="Hero / Banner Crop" help="Wide aspect, space for overlay text." checked={!!o.heroBanner} onChange={(v) => updateOptIn({ heroBanner: v })}>
             <TextField label="Hero / banner crop — link" value={state.heroBannerCrop} onChange={(v) => update({ heroBannerCrop: v })} />
-          </TwoCol>
-          <TextField label="Other photo — link" optional value={state.otherCandidatePhoto} onChange={(v) => update({ otherCandidatePhoto: v })} />
+          </SectionToggle>
         </>
       )}
       {isParty && (
@@ -532,8 +590,23 @@ export function S11Media() {
         <RadioGroup label="Photographer credit required?" value={state.photographerCreditRequired} onChange={(v) => update({ photographerCreditRequired: v })} options={YES_NO} />
         <RadioGroup label="Model releases on file?" value={state.modelReleasesOnFile} onChange={(v) => update({ modelReleasesOnFile: v })} options={YES_NO} />
       </TwoCol>
-      <Select label="Hosting preference (video)" value={state.hostingPreference} onChange={(v) => update({ hostingPreference: v })} options={HOSTING_PREFERENCE} />
-      <TextField label="B-Roll — folder link" optional value={state.bRollUploads} onChange={(v) => update({ bRollUploads: v })} help="Multi-upload supported in v1." />
+      <p className="op-section-num pt-4">5.2 VIDEO</p>
+      <p className="op-help">Check what's available; we'll either use what you have or schedule a shoot.</p>
+
+      <SectionToggle label="Launch Video" checked={!!o.launchVideo} onChange={(v) => updateOptIn({ launchVideo: v })}>
+        <TextField label="Launch video — link" value={state.launchVideoLink || ''} onChange={(v) => update({ launchVideoLink: v })} />
+      </SectionToggle>
+      <SectionToggle label="30–60 second direct-to-camera intro" checked={!!o.intro30s} onChange={(v) => updateOptIn({ intro30s: v })}>
+        <TextField label="30–60s intro — link" value={state.intro30sLink || ''} onChange={(v) => update({ intro30sLink: v })} />
+      </SectionToggle>
+      <SectionToggle label="B-Roll" help="Multi-upload supported in v1." checked={!!o.bRoll} onChange={(v) => updateOptIn({ bRoll: v })}>
+        <TextField label="B-Roll — folder link" value={state.bRollUploads} onChange={(v) => update({ bRollUploads: v })} />
+      </SectionToggle>
+      <SectionToggle label="Ad creative (web-repurposable)" checked={!!o.adCreative} onChange={(v) => updateOptIn({ adCreative: v })}>
+        <TextField label="Ad creative — folder link" value={state.adCreativeLink || ''} onChange={(v) => update({ adCreativeLink: v })} />
+      </SectionToggle>
+
+      <Select label="Hosting preference (YouTube, Vimeo, self-hosted)" optional value={state.hostingPreference} onChange={(v) => update({ hostingPreference: v })} options={HOSTING_PREFERENCE} />
       <TextField label="Captioning required? Vendor?" optional value={state.captioningVendor} onChange={(v) => update({ captioningVendor: v })} />
       <TextField label="Existing photo library — Drive / Dropbox link" optional value={state.existingPhotoLibrary} onChange={(v) => update({ existingPhotoLibrary: v })} help="Avoids redundant shoots." />
     </Section>
@@ -542,28 +615,49 @@ export function S11Media() {
 
 /* ─── 12. Social Media ─── */
 export function S12Social() {
-  const { state, update, subjectChosen } = useContent();
+  const { state, update, updateOptIn, subjectChosen } = useContent();
   if (!subjectChosen) return null;
+  const o = state.optIns || {};
   return (
-    <Section defaultOpen index="12" title="Social Media">
-      <TwoCol>
-        <TextField label="Facebook page URL" optional value={state.facebook} onChange={(v) => update({ facebook: v })} />
-        <TextField label="Instagram" optional value={state.instagram} onChange={(v) => update({ instagram: v })} />
-      </TwoCol>
-      <TwoCol>
-        <TextField label="X / Twitter" optional value={state.twitter} onChange={(v) => update({ twitter: v })} />
-        <TextField label="YouTube" optional value={state.youtube} onChange={(v) => update({ youtube: v })} />
-      </TwoCol>
-      <TwoCol>
-        <TextField label="TikTok" optional value={state.tiktok} onChange={(v) => update({ tiktok: v })} />
-        <TextField label="Truth Social" optional value={state.truthSocial} onChange={(v) => update({ truthSocial: v })} />
-      </TwoCol>
-      <TwoCol>
-        <TextField label="Rumble" optional value={state.rumble} onChange={(v) => update({ rumble: v })} />
-        <TextField label="Telegram" optional value={state.telegram} onChange={(v) => update({ telegram: v })} />
-      </TwoCol>
-      <TextField label="Newsletter / Substack" optional value={state.newsletterSubstack} onChange={(v) => update({ newsletterSubstack: v })} />
-      <TextField label="Other social handle" optional value={state.otherSocialHandle} onChange={(v) => update({ otherSocialHandle: v })} />
+    <Section defaultOpen index="12" title="Social Media" subtitle="Check the platforms you have and paste each handle/URL.">
+      <SectionToggle label="Facebook" checked={!!o.facebook} onChange={(v) => updateOptIn({ facebook: v })}>
+        <TextField label="Facebook page URL" value={state.facebook} onChange={(v) => update({ facebook: v })} />
+      </SectionToggle>
+      <SectionToggle label="Instagram" checked={!!o.instagram} onChange={(v) => updateOptIn({ instagram: v })}>
+        <TextField label="Instagram link / handle" value={state.instagram} onChange={(v) => update({ instagram: v })} />
+      </SectionToggle>
+      <SectionToggle label="X / Twitter" checked={!!o.twitter} onChange={(v) => updateOptIn({ twitter: v })}>
+        <TextField label="Twitter handle" value={state.twitter} onChange={(v) => update({ twitter: v })} />
+      </SectionToggle>
+      <SectionToggle label="TikTok" checked={!!o.tiktok} onChange={(v) => updateOptIn({ tiktok: v })}>
+        <TextField label="TikTok handle" value={state.tiktok} onChange={(v) => update({ tiktok: v })} />
+      </SectionToggle>
+      <SectionToggle label="YouTube" checked={!!o.youtube} onChange={(v) => updateOptIn({ youtube: v })}>
+        <TextField label="Channel URL or @handle" value={state.youtube} onChange={(v) => update({ youtube: v })} />
+      </SectionToggle>
+      <SectionToggle label="LinkedIn (Candidate)" checked={!!o.linkedinCandidate} onChange={(v) => updateOptIn({ linkedinCandidate: v })}>
+        <TextField label="Profile link for candidate" value={state.linkedinCandidate || ''} onChange={(v) => update({ linkedinCandidate: v })} />
+      </SectionToggle>
+      <SectionToggle label="LinkedIn (Campaign)" checked={!!o.linkedinCampaign} onChange={(v) => updateOptIn({ linkedinCampaign: v })}>
+        <TextField label="Profile link for campaign" value={state.linkedinCampaign || ''} onChange={(v) => update({ linkedinCampaign: v })} />
+      </SectionToggle>
+      <SectionToggle label="Threads" checked={!!o.threads} onChange={(v) => updateOptIn({ threads: v })}>
+        <TextField label="Profile handle or direct profile link" value={state.threads || ''} onChange={(v) => update({ threads: v })} />
+      </SectionToggle>
+      <SectionToggle label="Bluesky" checked={!!o.bluesky} onChange={(v) => updateOptIn({ bluesky: v })}>
+        <TextField label="Bluesky handle" value={state.bluesky || ''} onChange={(v) => update({ bluesky: v })} />
+      </SectionToggle>
+      <SectionToggle label="Truth Social / Rumble / Telegram / Newsletter" checked={!!o.otherSocial} onChange={(v) => updateOptIn({ otherSocial: v })}>
+        <TwoCol>
+          <TextField label="Truth Social" optional value={state.truthSocial} onChange={(v) => update({ truthSocial: v })} />
+          <TextField label="Rumble" optional value={state.rumble} onChange={(v) => update({ rumble: v })} />
+        </TwoCol>
+        <TwoCol>
+          <TextField label="Telegram" optional value={state.telegram} onChange={(v) => update({ telegram: v })} />
+          <TextField label="Newsletter / Substack" optional value={state.newsletterSubstack} onChange={(v) => update({ newsletterSubstack: v })} />
+        </TwoCol>
+        <TextField label="Other social handle" optional value={state.otherSocialHandle} onChange={(v) => update({ otherSocialHandle: v })} />
+      </SectionToggle>
     </Section>
   );
 }
