@@ -27,6 +27,7 @@ import {
   ACTIVE_CLIENTS_FIELD_IDS,
   FIELD_IDS,
 } from './clickup-field-map.js';
+import { buildCustomFields, getDropdownOptionsMap } from './clickup-build.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -123,6 +124,15 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
   const activeClientTask = await findActiveClientByClientId(clientId).catch(() => null);
   const description = buildDescription(state);
 
+  const optionsMap = await getDropdownOptionsMap().catch((e) => {
+    console.warn('[website-content] dropdown options fetch failed:', e.message);
+    return {};
+  });
+  const { fields: customFields, unresolved } = buildCustomFields(state, optionsMap);
+  if (unresolved.length) {
+    console.warn('[website-content] unresolved dropdown values:', unresolved);
+  }
+
   const newTask = await clickupFetch(`/list/${PRIMARY_LIST_ID}/task`, {
     method: 'POST',
     body: JSON.stringify({
@@ -130,6 +140,7 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
       description,
       status: 'to do',
       tags: [`subject:${state.subjectType}`],
+      custom_fields: customFields,
     }),
   });
 
@@ -161,9 +172,29 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
       await setCustomField(activeClientTask.id, masterFieldByName['DBA / Trade Name*'].id, String(state.displayName).trim())
         .catch((e) => console.error('[website-content] DBA propagation failed:', e.message));
     }
+
+    // If all 3 form Submitted-At dates are now non-null on the master,
+    // advance status to "all forms received".
+    await maybeAdvanceAllFormsReceived(activeClientTask, { website_content: true })
+      .catch((e) => console.error('[website-content] status advance failed:', e.message));
   }
 
   return { task_id: newTask.id, active_client_id: activeClientTask?.id || null };
+}
+
+async function maybeAdvanceAllFormsReceived(activeClientTask, justWrote) {
+  const get = (name) => (activeClientTask.custom_fields || []).find((f) => f.name === name)?.value;
+  const f1 = justWrote.campaign_intake || get('Campaign Intake Submitted At');
+  const f2 = justWrote.brand_onboarding || get('Brand Onboarding Submitted At');
+  const f3 = justWrote.website_content || get('Website Content Submitted At');
+  if (!(f1 && f2 && f3)) return;
+  const target = process.env.AC_ALL_FORMS_STATUS || 'all forms received';
+  const current = activeClientTask.status?.status || '';
+  if (current.toLowerCase() === target.toLowerCase()) return;
+  await clickupFetch(`/task/${activeClientTask.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: target }),
+  });
 }
 
 async function setCustomField(taskId, fieldId, value) {

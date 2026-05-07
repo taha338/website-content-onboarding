@@ -37,9 +37,116 @@ const STAGE_LIST = [
   { id: 'review',      label: 'Review',             Component: () => <Stage9Review /> },
 ];
 
+// ─── Required-field validators ─────────────────────────────────────────
+// Each stage must satisfy its predicate before "Continue" enables. Mirrors
+// the canContinue pattern in Form 1/2. Keep these aligned with the
+// "no asterisk = required" convention used in src/components/sections.
+
+const filled = (v) => typeof v === 'string' ? v.trim().length > 0 : !!v;
+// "Filled if visible" — when an opt-in toggle is OFF, the dependent
+// field is not required. Used to enforce conditional requireds.
+const filledIf = (visible, v) => !visible || filled(v);
+
+function validateStage1(s) {
+  return Boolean(s.subjectType) && filled(s.displayName);
+}
+function validateStage2(s, isCandidate, isParty) {
+  if (isCandidate) {
+    const eduOk = Array.isArray(s.education)
+      && s.education.some((r) => filled(r?.school));
+    const o = s.optIns || {};
+    return filled(s.bornCityState) &&
+           filled(s.currentCity) &&
+           filled(s.yearsInDistrict) &&
+           eduOk &&
+           filled(s.rolesCompanies) &&
+           filled(s.currentOccupation) &&
+           filled(s.willContinueWorking) &&
+           // 1.4 conditional requireds: only if the section toggle is on
+           filledIf(o.electedOffices,  s.electedOfficesHeld) &&
+           filledIf(o.boards,          s.boardsCommissions) &&
+           filledIf(o.nonprofit,       s.nonprofitVolunteer) &&
+           filledIf(o.faith,           s.religion);
+  }
+  if (isParty) {
+    const coreOk = Array.isArray(s.coreValues) &&
+      s.coreValues.filter((r) => filled(r?.value)).length >= 3;
+    return filled(s.foundingYear) && filled(s.missionStatement) &&
+           filled(s.visionStatement) && coreOk &&
+           filled(s.platformPillarsFull);
+  }
+  return false;
+}
+function validateStage3(s, isCandidate, isParty) {
+  if (isCandidate) {
+    return filled(s.whyRunning) &&
+           filled(s.incitingMoment) &&
+           filled(s.differentiationOpponent) &&
+           filled(s.voterFeel) &&
+           filled(s.voterDo) &&
+           filled(s.tagline) &&
+           filled(s.elevatorPitch);
+  }
+  if (isParty) {
+    return filled(s.whyPartyExists) &&
+           filled(s.foundingMoment) &&
+           filled(s.differentiationOther) &&
+           filled(s.voterFeel) &&
+           filled(s.voterDo) &&
+           filled(s.tagline) &&
+           filled(s.elevatorPitch);
+  }
+  return false;
+}
+function validateStage4(s) {
+  // First 3 issues must each have all 5 core fields per the Wix spec.
+  const issues = Array.isArray(s.issues) ? s.issues : [];
+  if (issues.length < 3) return false;
+  return issues.slice(0, 3).every((i) =>
+    filled(i?.name) &&
+    filled(i?.position) &&
+    filled(i?.supportingDetail) &&
+    filled(i?.personalConnection) &&
+    filled(i?.contrastOpponent),
+  );
+}
+function validateStage5(s, isCandidate) {
+  // 3.6 Third Rails always required; 3.7 Voting record required for incumbents.
+  if (!filled(s.topicsAvoid) || !filled(s.topicsLegalReview)) return false;
+  if (isCandidate && s.electedOfficesHeld && filled(s.electedOfficesHeld)) {
+    // Treat presence of prior office text as "incumbent / has record"
+    if (!filled(s.topVotesHighlight) || !filled(s.votesAttackedPreempt)) return false;
+  }
+  return true;
+}
+function validateStage6(s, isCandidate, isParty) {
+  if (!filled(s.dataRetentionPolicy)) return false;
+  if (!filled(s.supporterDataRequests)) return false;
+  if (isParty && !filled(s.endorsementCriteria)) return false;
+  return true;
+}
+function validateStage7(s, isCandidate) {
+  // Press contact + events calendar + inspiration websites
+  if (!filled(s.pressContactName) || !filled(s.pressContactEmail)) return false;
+  if (!filled(s.eventsCalendarSource) || !filled(s.eventsCalendarOwner)) return false;
+  if (isCandidate) {
+    return filled(s.websitesLikedCandidate) && filled(s.websitesAvoidCandidate);
+  }
+  return filled(s.websitesLikedParty) && filled(s.websitesAvoidParty);
+}
+function validateStage8(s, isCandidate) {
+  if (!filled(s.privacyPolicy) || !filled(s.termsOfService) ||
+      !filled(s.cookieConsent) || !filled(s.requiredPagesList)) return false;
+  // Compliance / paid-for disclaimer block
+  if (!filled(s.paidForDisclaimer) || !filled(s.stateElectionAgency) ||
+      !filled(s.campaignCounsel)) return false;
+  if (isCandidate && !filled(s.localElectionAuthority)) return false;
+  return true;
+}
+
 function Stage1Identity() {
   const { state } = useContent();
-  const canContinue = Boolean(state.subjectType);
+  const canContinue = validateStage1(state);
   return (
     <StageShell number={1} title="Subject & Identity" subtitle="Confirm subject type (auto-pulled from Form 1) and the basics." isFirst canContinue={canContinue}>
       <SubjectTypeToggle />
@@ -53,9 +160,10 @@ function Stage1Identity() {
 }
 
 function Stage2Profile() {
-  const { isCandidate, isParty } = useContent();
+  const { state, isCandidate, isParty } = useContent();
+  const canContinue = validateStage2(state, isCandidate, isParty);
   return (
-    <StageShell number={2} title={isCandidate ? 'Biography' : 'Party Profile'} subtitle={isCandidate ? 'Where the candidate comes from, and who they are.' : 'Founding, mission, structure.'}>
+    <StageShell number={2} title={isCandidate ? 'Biography' : 'Party Profile'} subtitle={isCandidate ? 'Where the candidate comes from, and who they are.' : 'Founding, mission, structure.'} canContinue={canContinue}>
       <S2ACandidateBio />
       <S2BPartyProfile />
       {isParty && <S2CLeadership />}
@@ -64,24 +172,30 @@ function Stage2Profile() {
 }
 
 function Stage3Narrative() {
+  const { state, isCandidate, isParty } = useContent();
+  const canContinue = validateStage3(state, isCandidate, isParty);
   return (
-    <StageShell number={3} title="Narrative & Messaging" subtitle="The story you tell on the homepage and 'about' pages.">
+    <StageShell number={3} title="Narrative & Messaging" subtitle="The story you tell on the homepage and 'about' pages." canContinue={canContinue}>
       <S3Narrative />
     </StageShell>
   );
 }
 
 function Stage4Issues() {
+  const { state } = useContent();
+  const canContinue = validateStage4(state);
   return (
-    <StageShell number={4} title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars.">
+    <StageShell number={4} title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars." canContinue={canContinue}>
       <S4Issues />
     </StageShell>
   );
 }
 
 function Stage5Record() {
+  const { state, isCandidate } = useContent();
+  const canContinue = validateStage5(state, isCandidate);
   return (
-    <StageShell number={5} title="Record, Risk & Compliance" subtitle="Receipts and disclosures.">
+    <StageShell number={5} title="Record, Risk & Compliance" subtitle="Receipts and disclosures." canContinue={canContinue}>
       <S5Record />
       <S6RiskLegal />
       <S7Compliance />
@@ -90,9 +204,10 @@ function Stage5Record() {
 }
 
 function Stage6Compliance() {
-  const { isParty } = useContent();
+  const { state, isCandidate, isParty } = useContent();
+  const canContinue = validateStage6(state, isCandidate, isParty);
   return (
-    <StageShell number={6} title="Data Governance & Endorsements">
+    <StageShell number={6} title="Data Governance & Endorsements" canContinue={canContinue}>
       <S8DataGov />
       {isParty && <S9Endorsed />}
     </StageShell>
@@ -100,8 +215,10 @@ function Stage6Compliance() {
 }
 
 function Stage7MediaSocial() {
+  const { state, isCandidate } = useContent();
+  const canContinue = validateStage7(state, isCandidate);
   return (
-    <StageShell number={7} title="Events, Media & Social" subtitle="Calendar, photos, video, and every social handle you have.">
+    <StageShell number={7} title="Events, Media & Social" subtitle="Calendar, photos, video, and every social handle you have." canContinue={canContinue}>
       <S10Events />
       <S11Media />
       <S12Social />
@@ -112,9 +229,10 @@ function Stage7MediaSocial() {
 }
 
 function Stage8SitePages() {
-  const { isCandidate, isParty } = useContent();
+  const { state, isCandidate, isParty } = useContent();
+  const canContinue = validateStage8(state, isCandidate);
   return (
-    <StageShell number={8} title="Site Pages & Content" subtitle="Compliance pages, structure, email content, fundraising, and subject-specific extras.">
+    <StageShell number={8} title="Site Pages & Content" subtitle="Compliance pages, structure, email content, fundraising, and subject-specific extras." canContinue={canContinue}>
       <S16SiteCompliance />
       <S17SiteStructure />
       <S18EmailContent />
