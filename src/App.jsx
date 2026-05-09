@@ -5,11 +5,12 @@
  * 8 stages, framer-motion transitions, prev/next, required-field
  * validation, "do you need this?" gates for optional content groups.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { ContentProvider, useContent } from './context/ContentContext';
 import { fetchPrefill, readClientIdFromUrl } from './lib/clickup';
-import { generateContentPdf } from './lib/pdf';
+import { generateReportPDF } from './utils/generateReportPDF';
+import ContentReportTemplate from './components/ContentReportTemplate';
 import { Download } from 'lucide-react';
 import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
@@ -249,6 +250,26 @@ function Stage8SitePages() {
 
 function Stage9Review() {
   const { state, dispatch } = useContent();
+  const pdfRef = useRef(null);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  const handleDownloadPDF = async () => {
+    setPdfGenerating(true);
+    setPdfError(null);
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      if (!pdfRef.current) throw new Error('Report preview not ready — try again.');
+      const fileName = `${state.clientId || 'website-content'}-summary.pdf`;
+      await generateReportPDF(pdfRef.current, fileName);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      setPdfError(err?.message || 'Failed to generate PDF.');
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   const submit = async () => {
     dispatch({ type: 'SET_SUBMIT_STATE', payload: { submitting: true, submitError: '' } });
     try {
@@ -294,15 +315,40 @@ function Stage9Review() {
         </button>
         <button
           type="button"
-          onClick={() => generateContentPdf(state)}
-          className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-[var(--color-op-ink)] text-[var(--color-op-ink)] font-semibold uppercase tracking-wider text-sm hover:bg-[var(--color-op-cream)] transition-colors"
+          onClick={handleDownloadPDF}
+          disabled={pdfGenerating}
+          className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-[var(--color-op-ink)] text-[var(--color-op-ink)] font-semibold uppercase tracking-wider text-sm hover:bg-[var(--color-op-cream)] disabled:opacity-60 transition-colors"
         >
-          <Download size={16} /> Download as PDF
+          <Download size={16} /> {pdfGenerating ? 'Generating…' : 'Download as PDF'}
         </button>
       </div>
+      {pdfError && (
+        <p className="mt-3 text-sm text-red-700">{pdfError}</p>
+      )}
       {state.submitError && (
         <p className="mt-3 text-sm text-red-700">{state.submitError}</p>
       )}
+
+      {/* Off-screen report template — source DOM for the PDF capture. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: 0,
+          height: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
+      >
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 1100 }}>
+          <div ref={pdfRef}>
+            <ContentReportTemplate state={state} />
+          </div>
+        </div>
+      </div>
     </StageShell>
   );
 }
