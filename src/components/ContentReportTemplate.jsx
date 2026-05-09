@@ -53,9 +53,10 @@ function SectionTitle({ number, label, children }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          minWidth: 32, height: 32, padding: '0 10px', borderRadius: 999,
+          width: 32, height: 32, padding: 0, borderRadius: '50%',
           background: NAVY, color: '#FFFFFF', fontSize: 12, fontWeight: 700,
-          letterSpacing: '0.06em', fontFamily: BODY_FONT,
+          letterSpacing: 0, fontFamily: BODY_FONT,
+          boxSizing: 'border-box', flexShrink: 0, lineHeight: 1,
         }}>{number}</span>
         <span style={{
           fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
