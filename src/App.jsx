@@ -17,6 +17,7 @@ import ProgressBar from './components/ProgressBar';
 import StageShell from './components/StageShell';
 import SubjectTypeToggle from './components/SubjectTypeToggle';
 import OptInGate from './components/OptInGate';
+import AutofillButton from './components/AutofillButton';
 import {
   S1Identity, S2ACandidateBio, S2BPartyProfile, S2CLeadership,
   S3Narrative, S4Issues, S5Record, S6RiskLegal, S7Compliance,
@@ -425,6 +426,7 @@ export default function App() {
       <div className="op-paper min-h-screen pb-20">
         <HeaderWithClient />
         <PrefillBoot />
+        <AutofillButton />
         <Wizard />
       </div>
     </ContentProvider>
