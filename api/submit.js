@@ -122,7 +122,8 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
   const taskName    = `${displayName} (${clientId}) — Website Content`;
 
   const activeClientTask = await findActiveClientByClientId(clientId).catch(() => null);
-  const description = buildDescription(state);
+  // No description dump — all data lives in structured custom fields now.
+  const description = '';
 
   const optionsMap = await getDropdownOptionsMap().catch((e) => {
     console.warn('[website-content] dropdown options fetch failed:', e.message);
@@ -195,6 +196,14 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     await maybeAdvanceAllFormsReceived(activeClientTask, { website_content: true })
       .catch((e) => console.error('[website-content] status advance failed:', e.message));
   }
+
+  // Flip the form-list task's own status to 'submitted' so ClickUp emits a
+  // taskStatusUpdated webhook → Worker F0 + W5. Without this the task
+  // stays at 'to do' and downstream automations never fire.
+  await clickupFetch(`/task/${newTask.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: 'submitted' }),
+  }).catch((e) => console.error('[website-content] status flip to submitted failed:', e.message));
 
   return { task_id: newTask.id, active_client_id: activeClientTask?.id || null };
 }
