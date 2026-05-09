@@ -133,6 +133,9 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     console.warn('[website-content] unresolved dropdown values:', unresolved);
   }
 
+  // Step 1: create task WITHOUT inline custom_fields. ClickUp's inline
+  // custom_fields array silently drops the FIRST ~25-28 entries when more
+  // are sent — see docs/clickup-custom-fields.md §6.
   const newTask = await clickupFetch(`/list/${PRIMARY_LIST_ID}/task`, {
     method: 'POST',
     body: JSON.stringify({
@@ -140,9 +143,23 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
       description,
       status: 'to do',
       tags: [`subject:${state.subjectType}`],
-      custom_fields: customFields,
     }),
   });
+
+  // Step 2: write each custom field individually. Failures isolated.
+  const fieldFailures = [];
+  for (const cf of customFields) {
+    try {
+      await clickupFetch(`/task/${newTask.id}/field/${cf.id}`, {
+        method: 'POST',
+        body: JSON.stringify({ value: cf.value }),
+      });
+    } catch (e) {
+      const detail = { fieldId: cf.id, error: String(e.message || e) };
+      console.warn('[website-content] field write failed:', detail);
+      fieldFailures.push(detail);
+    }
+  }
 
   if (activeClientTask && FIELD_IDS['Linked Client']) {
     await clickupFetch(`/task/${newTask.id}/field/${FIELD_IDS['Linked Client']}`, {
