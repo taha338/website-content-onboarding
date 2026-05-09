@@ -78,7 +78,7 @@ function Field({ label, value }) {
   const display = formatValue(value);
   if (!display) return null;
   return (
-    <div style={{ breakInside: 'avoid' }}>
+    <div data-pdf-field="" style={{ breakInside: 'avoid' }}>
       <p style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
         textTransform: 'uppercase', color: MUTED, margin: '0 0 6px',
@@ -117,7 +117,7 @@ function Section({ number, label, title, children, columns = 2 }) {
   });
   if (!anyFilled) return null;
   return (
-    <div style={{ marginBottom: 36, breakInside: 'avoid' }}>
+    <div data-pdf-section="" style={{ marginBottom: 36, breakInside: 'avoid' }}>
       <SectionTitle number={number} label={label}>{title}</SectionTitle>
       <FieldGrid columns={columns}>{items}</FieldGrid>
     </div>
@@ -195,7 +195,7 @@ export default function ContentReportTemplate({ state }) {
       </div>
 
       {/* HERO */}
-      <div style={{
+      <div data-pdf-section="" style={{
         background: NAVY,
         color: '#FFFFFF',
         borderRadius: 22,
@@ -294,11 +294,11 @@ export default function ContentReportTemplate({ state }) {
       )}
 
       {isParty && state.leadershipProfiles?.some?.((l) => l && l.name) && (
-        <div style={{ marginBottom: 36 }}>
+        <div data-pdf-section="" style={{ marginBottom: 36 }}>
           <SectionTitle number="2C" label="Leadership">Leadership Profiles</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {state.leadershipProfiles.filter((l) => l && l.name).map((l, i) => (
-              <div key={i} style={{
+              <div key={i} data-pdf-field="" style={{
                 background: '#FFFFFF', border: `1px solid ${BORDER}`, borderRadius: 14,
                 padding: '22px 24px',
               }}>
@@ -345,11 +345,11 @@ export default function ContentReportTemplate({ state }) {
       </Section>
 
       {state.issues?.some?.((i) => i && (i.name || i.position)) && (
-        <div style={{ marginBottom: 36 }}>
+        <div data-pdf-section="" style={{ marginBottom: 36 }}>
           <SectionTitle number="4" label="Section 4">Issues / Platform</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
             {state.issues.filter((i) => i && (i.name || i.position)).map((row, i) => (
-              <div key={i} style={{
+              <div key={i} data-pdf-field="" style={{
                 background: '#FFFFFF', border: `1px solid ${BORDER}`, borderRadius: 14,
                 padding: '22px 26px',
               }}>
@@ -541,7 +541,7 @@ export default function ContentReportTemplate({ state }) {
       </Section>
 
       {/* FOOTER */}
-      <div style={{
+      <div data-pdf-section="" style={{
         marginTop: 48, paddingTop: 24, borderTop: `1px solid ${BORDER}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         fontFamily: BODY_FONT,

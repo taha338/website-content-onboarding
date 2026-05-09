@@ -72,6 +72,21 @@ export async function generateReportPDF(node, fileName = 'report.pdf') {
     }
   };
 
+  // Capture DOM-relative Y coordinates of break boundaries BEFORE rasterizing.
+  // - Section tops are the strongly-preferred break points (between cards).
+  // - Field bottoms are acceptable fallbacks (between rows inside a card).
+  const nodeRect = node.getBoundingClientRect();
+  const sectionTopsSrc = Array.from(node.querySelectorAll('[data-pdf-section]'))
+    .map((el) => el.getBoundingClientRect().top - nodeRect.top)
+    .filter((y) => y > 0);
+  const fieldBottomsSrc = Array.from(node.querySelectorAll('[data-pdf-field]'))
+    .map((el) => {
+      const r = el.getBoundingClientRect();
+      return r.bottom - nodeRect.top;
+    })
+    .filter((y) => y > 0);
+  const sourceHeight = node.scrollHeight;
+
   const canvas = await html2canvas(node, {
     scale: 2,
     useCORS: true,
@@ -81,6 +96,10 @@ export async function generateReportPDF(node, fileName = 'report.pdf') {
     windowHeight: node.scrollHeight,
     onclone: (_doc, clonedNode) => freezeColors(clonedNode, node),
   });
+
+  const srcToCanvas = canvas.height / sourceHeight;
+  const sectionTops = sectionTopsSrc.map((y) => Math.round(y * srcToCanvas));
+  const fieldBottoms = fieldBottomsSrc.map((y) => Math.round(y * srcToCanvas));
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -92,33 +111,25 @@ export async function generateReportPDF(node, fileName = 'report.pdf') {
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgWidth, imgHeight);
   } else {
     const pxPerPage = Math.floor((pageHeight * canvas.width) / pageWidth);
+    const minSlice = Math.floor(pxPerPage * 0.5);
 
-    // Find page-break Y positions that don't slice through content. We scan
-    // backward from the maximum-fit row looking for a row of nearly-white
-    // pixels (i.e. a gap between cards / sections). Falls back to pxPerPage
-    // if no clean gap is found in the lookback window.
-    const findCleanBreak = (sourceCanvas, startY, maxY) => {
-      const lookback = Math.min(Math.floor(pxPerPage * 0.18), maxY - startY - 1);
-      if (lookback <= 0) return maxY;
-      try {
-        const ctx = sourceCanvas.getContext('2d');
-        const region = ctx.getImageData(0, maxY - lookback, sourceCanvas.width, lookback);
-        const w = sourceCanvas.width;
-        const data = region.data;
-        for (let row = lookback - 1; row >= 0; row -= 1) {
-          let nonWhite = 0;
-          const base = row * w * 4;
-          for (let x = 0; x < w; x += 4) {
-            const i = base + x * 4;
-            if (data[i] < 248 || data[i + 1] < 248 || data[i + 2] < 248) {
-              nonWhite += 1;
-              if (nonWhite > 2) break;
-            }
-          }
-          if (nonWhite <= 2) return maxY - lookback + row;
+    // Pick the largest boundary in (yOffset+minSlice, yOffset+pxPerPage].
+    // Prefer section tops; fall back to field bottoms; finally, hard cut.
+    const pickBreak = (yOffset) => {
+      const lo = yOffset + minSlice;
+      const hi = yOffset + pxPerPage;
+      const within = (arr) => {
+        let best = -1;
+        for (const y of arr) {
+          if (y > lo && y <= hi && y > best) best = y;
         }
-      } catch { /* tainted canvas — fall through */ }
-      return maxY;
+        return best;
+      };
+      const s = within(sectionTops);
+      if (s > 0) return s;
+      const f = within(fieldBottoms);
+      if (f > 0) return f;
+      return hi;
     };
 
     let yOffset = 0;
@@ -130,8 +141,7 @@ export async function generateReportPDF(node, fileName = 'report.pdf') {
       if (remaining <= pxPerPage) {
         sliceHeight = remaining;
       } else {
-        const breakY = findCleanBreak(canvas, yOffset, yOffset + pxPerPage);
-        sliceHeight = Math.max(breakY - yOffset, Math.floor(pxPerPage * 0.5));
+        sliceHeight = pickBreak(yOffset) - yOffset;
       }
 
       const slice = document.createElement('canvas');
