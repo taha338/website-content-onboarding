@@ -27,6 +27,7 @@ import {
   ACTIVE_CLIENTS_FIELD_IDS,
   FIELD_IDS,
 } from './clickup-field-map.js';
+import { buildCustomFields, getDropdownOptionsMap } from './clickup-build.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -121,8 +122,20 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
   const taskName    = `${displayName} (${clientId}) — Website Content`;
 
   const activeClientTask = await findActiveClientByClientId(clientId).catch(() => null);
-  const description = buildDescription(state);
+  // No description dump — all data lives in custom fields now.
+  const description = '';
 
+  const optionsMap = await getDropdownOptionsMap().catch((e) => {
+    console.warn('[website-content] dropdown options fetch failed:', e.message);
+    return {};
+  });
+  const { fields: customFields, unresolved } = buildCustomFields(state, optionsMap);
+  if (unresolved.length) {
+    console.warn('[website-content] unresolved field values:', unresolved);
+  }
+
+  // Create at 'to do' first; PUT to 'submitted' below so ClickUp emits a real
+  // taskStatusUpdated webhook (the only event Worker status_change accepts).
   const newTask = await clickupFetch(`/list/${PRIMARY_LIST_ID}/task`, {
     method: 'POST',
     body: JSON.stringify({
@@ -133,12 +146,35 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     }),
   });
 
+  // Step 2: per-field POST. Failures isolated, never thrown.
+  const fieldFailures = [];
+  for (const cf of customFields) {
+    try {
+      await setCustomField(newTask.id, cf.id, cf.value);
+    } catch (e) {
+      const detail = { fieldId: cf.id, error: String(e.message || e) };
+      console.warn('[website-content] field write failed:', detail);
+      fieldFailures.push(detail);
+    }
+  }
+
   if (activeClientTask && FIELD_IDS['Linked Client']) {
     await clickupFetch(`/task/${newTask.id}/field/${FIELD_IDS['Linked Client']}`, {
       method: 'POST',
       body: JSON.stringify({ value: { add: [activeClientTask.id] } }),
     }).catch((e) => console.error('[website-content] linked-client failed:', e));
   }
+
+  // Propagate workspace-shared fields from AC master onto the form-list task
+  // (Client ID + every populated workspace-shared value).
+  const formWrittenFieldIds = new Set(customFields.map((c) => c.id));
+  await propagateWorkspaceFields({
+    sourceTask: activeClientTask,
+    destTaskId: newTask.id,
+    clientId,
+    skipFieldIds: formWrittenFieldIds,
+    label: 'website-content',
+  });
 
   if (activeClientTask) {
     const subjectOrderIndex = state.subjectType === 'party' ? 1 : 0;
@@ -163,7 +199,45 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     }
   }
 
-  return { task_id: newTask.id, active_client_id: activeClientTask?.id || null };
+  // PUT status to 'submitted' so ClickUp fires taskStatusUpdated → Worker F0 + W5
+  await clickupFetch(`/task/${newTask.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: 'submitted' }),
+  }).catch((e) => console.error('[website-content] status flip to submitted failed:', e.message));
+
+  return { task_id: newTask.id, active_client_id: activeClientTask?.id || null, field_failures: fieldFailures, unresolved };
+}
+
+async function propagateWorkspaceFields({ sourceTask, destTaskId, clientId, skipFieldIds, label }) {
+  const CLIENT_ID_FIELD_UUID = 'fb5566ed-7a97-4337-a698-84b07d581fb8';
+  if (clientId) {
+    await setCustomField(destTaskId, CLIENT_ID_FIELD_UUID, clientId)
+      .catch((e) => console.error(`[${label}] Client ID write failed:`, e.message));
+  }
+  if (!sourceTask) return;
+  for (const f of sourceTask.custom_fields || []) {
+    const fid = f.id;
+    if (!fid || skipFieldIds?.has(fid)) continue;
+    if (fid === CLIENT_ID_FIELD_UUID) continue;
+    if (f.type === 'list_relationship' || f.type === 'attachment' || f.type === 'users') continue;
+    const v = f.value;
+    if (v === undefined || v === null || v === '' ||
+        (Array.isArray(v) && v.length === 0) ||
+        (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)) {
+      continue;
+    }
+    let writeValue = v;
+    if (f.type === 'drop_down' && typeof v === 'object' && v?.orderindex !== undefined) {
+      writeValue = v.orderindex;
+    }
+    if (f.type === 'labels' && Array.isArray(v)) {
+      writeValue = v.map((opt) => (typeof opt === 'string' ? opt : opt.id)).filter(Boolean);
+      if (!writeValue.length) continue;
+    }
+    await setCustomField(destTaskId, fid, writeValue).catch((e) =>
+      console.error(`[${label}] propagate field "${f.name}" failed:`, e.message),
+    );
+  }
 }
 
 async function setCustomField(taskId, fieldId, value) {
