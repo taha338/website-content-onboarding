@@ -169,6 +169,17 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     }).catch((e) => console.error('[website-content] linked-client failed:', e));
   }
 
+  // Propagate workspace-shared fields (Client ID + every populated value on
+  // the AC master) onto the new form-list task. Replaces Worker automation F0.
+  const formWrittenFieldIds = new Set(customFields.map((c) => c.id));
+  await propagateWorkspaceFields({
+    sourceTask: activeClientTask,
+    destTaskId: newTask.id,
+    clientId,
+    skipFieldIds: formWrittenFieldIds,
+    label: 'website-content',
+  });
+
   if (activeClientTask) {
     const subjectOrderIndex = state.subjectType === 'party' ? 1 : 0;
     const updates = [
@@ -228,6 +239,43 @@ async function setCustomField(taskId, fieldId, value) {
     method: 'POST',
     body: JSON.stringify({ value }),
   });
+}
+
+// Propagate workspace-shared custom fields from the AC master onto a new
+// form-list task. Always writes Client ID. Then, for every populated field
+// on the AC master (skipping form-managed fields, attachments, relationships,
+// and users), POSTs the same value onto the dest task. Failures are logged,
+// never thrown. Replaces Worker automation F0.
+async function propagateWorkspaceFields({ sourceTask, destTaskId, clientId, skipFieldIds, label }) {
+  const CLIENT_ID_FIELD_UUID = 'fb5566ed-7a97-4337-a698-84b07d581fb8';
+  if (clientId) {
+    await setCustomField(destTaskId, CLIENT_ID_FIELD_UUID, clientId)
+      .catch((e) => console.error(`[${label}] Client ID write failed:`, e.message));
+  }
+  if (!sourceTask) return;
+  for (const f of sourceTask.custom_fields || []) {
+    const fid = f.id;
+    if (!fid || skipFieldIds?.has(fid)) continue;
+    if (fid === CLIENT_ID_FIELD_UUID) continue;
+    if (f.type === 'list_relationship' || f.type === 'attachment' || f.type === 'users') continue;
+    const v = f.value;
+    if (v === undefined || v === null || v === '' ||
+        (Array.isArray(v) && v.length === 0) ||
+        (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)) {
+      continue;
+    }
+    let writeValue = v;
+    if (f.type === 'drop_down' && typeof v === 'object' && v?.orderindex !== undefined) {
+      writeValue = v.orderindex;
+    }
+    if (f.type === 'labels' && Array.isArray(v)) {
+      writeValue = v.map((opt) => (typeof opt === 'string' ? opt : opt.id)).filter(Boolean);
+      if (!writeValue.length) continue;
+    }
+    await setCustomField(destTaskId, fid, writeValue).catch((e) =>
+      console.error(`[${label}] propagate field "${f.name}" failed:`, e.message),
+    );
+  }
 }
 
 
