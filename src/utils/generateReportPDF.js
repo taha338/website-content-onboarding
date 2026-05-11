@@ -104,13 +104,15 @@ export async function generateReportPDF(node, fileName = 'report.pdf') {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
+  const topMargin = 32;
   const imgWidth = pageWidth;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const usableHeight = pageHeight - topMargin;
 
-  if (imgHeight <= pageHeight) {
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgWidth, imgHeight);
+  if (imgHeight <= usableHeight) {
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, topMargin, imgWidth, imgHeight);
   } else {
-    const pxPerPage = Math.floor((pageHeight * canvas.width) / pageWidth);
+    const pxPerPage = Math.floor((usableHeight * canvas.width) / pageWidth);
     const minSlice = Math.floor(pxPerPage * 0.5);
 
     // Pick the largest boundary in (yOffset+minSlice, yOffset+pxPerPage].
@@ -154,7 +156,7 @@ export async function generateReportPDF(node, fileName = 'report.pdf') {
 
       const sliceImgHeight = (sliceHeight * imgWidth) / canvas.width;
       if (pageIndex > 0) pdf.addPage();
-      pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgWidth, sliceImgHeight);
+      pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', 0, topMargin, imgWidth, sliceImgHeight);
 
       yOffset += sliceHeight;
       pageIndex += 1;
