@@ -9,9 +9,14 @@ const isDevMode = () => {
 const today = () => new Date().toISOString().slice(0, 10);
 
 function buildPayload(subjectType) {
+  const displayName =
+    subjectType === 'party'     ? 'Test Liberty Party' :
+    subjectType === 'nonprofit' ? 'Test Liberty Foundation' :
+    subjectType === 'pac'       ? 'Test Liberty PAC' :
+                                  'Jane Q. Test';
   const base = {
     subjectType,
-    displayName: subjectType === 'party' ? 'Test Liberty Party' : 'Jane Q. Test',
+    displayName,
     tagline: 'Test Tagline — Rooted in Freedom',
     logoFiles: 'https://example.com/test-logo.png',
     logoSecondary: 'https://example.com/test-logo-mark.png',
@@ -97,9 +102,9 @@ function buildPayload(subjectType) {
 
     // Issues
     issues: [
-      { name: 'Education', position: 'Test position', supportingDetail: 'Test detail', personalConnection: 'Test connection', partyRationale: 'Test rationale', contrastOpponent: 'Test contrast', contrastOtherParties: 'Test contrast' },
-      { name: 'Healthcare', position: 'Test position', supportingDetail: 'Test detail', personalConnection: 'Test connection', partyRationale: 'Test rationale', contrastOpponent: 'Test contrast', contrastOtherParties: 'Test contrast' },
-      { name: 'Economy', position: 'Test position', supportingDetail: 'Test detail', personalConnection: 'Test connection', partyRationale: 'Test rationale', contrastOpponent: 'Test contrast', contrastOtherParties: 'Test contrast' },
+      { name: 'Education', position: 'Test position', supportingDetail: 'Test detail', personalConnection: 'Test connection', partyRationale: 'Test rationale', nonprofitRationale: 'Test nonprofit rationale', pacRationale: 'Test PAC strategic rationale', contrastOpponent: 'Test contrast', contrastOtherParties: 'Test contrast', contrastPeerOrgs: 'Test contrast vs peer orgs', contrastPeerPacs: 'Test contrast vs peer PACs' },
+      { name: 'Healthcare', position: 'Test position', supportingDetail: 'Test detail', personalConnection: 'Test connection', partyRationale: 'Test rationale', nonprofitRationale: 'Test nonprofit rationale', pacRationale: 'Test PAC strategic rationale', contrastOpponent: 'Test contrast', contrastOtherParties: 'Test contrast', contrastPeerOrgs: 'Test contrast vs peer orgs', contrastPeerPacs: 'Test contrast vs peer PACs' },
+      { name: 'Economy', position: 'Test position', supportingDetail: 'Test detail', personalConnection: 'Test connection', partyRationale: 'Test rationale', nonprofitRationale: 'Test nonprofit rationale', pacRationale: 'Test PAC strategic rationale', contrastOpponent: 'Test contrast', contrastOtherParties: 'Test contrast', contrastPeerOrgs: 'Test contrast vs peer orgs', contrastPeerPacs: 'Test contrast vs peer PACs' },
     ],
 
     // Record & Receipts
@@ -251,11 +256,89 @@ function buildPayload(subjectType) {
     // Volunteer
     volunteerCategories: 'Door-knocking, phone banking, events, data entry',
 
+    // ─── Nonprofit Profile (S2D) ───
+    npFoundingYear: '2015',
+    npFoundingStory: 'Test nonprofit founding story — community need that catalyzed the org.',
+    npMissionStatement: 'Test nonprofit mission statement.',
+    npVisionStatement: 'Test nonprofit vision statement.',
+    npCoreValues: [
+      { value: 'Integrity' },
+      { value: 'Impact' },
+      { value: 'Community' },
+    ],
+    npProgramAreas: 'Program 1: Test service. Program 2: Test advocacy. Program 3: Test research.',
+    npPositionBriefs: [
+      { title: 'Test Brief 1', summary: 'Brief summary', link: 'https://example.com/brief1' },
+    ],
+    npImpactMetrics: 'Served 12,000 families in 2025; trained 400 volunteers.',
+    npAnnualBudget: '$2.4M (2025)',
+    npTopFunders: 'Test Family Foundation; Anonymous donors',
+    npChapterDirectory: [
+      { name: 'Test City Chapter', region: 'Midwest', contact: 'chapter@example.org', url: 'https://example.org/midwest' },
+    ],
+    npCoalitionPartners: 'Test Coalition; Allied Nonprofit Alliance',
+    npNotablePastWins: '2024 ballot initiative passage; 2023 state grant award',
+    npBoardStructure: '9 board seats; Executive, Finance, and Programs committees',
+    npIrsDeterminationStatus: 'Determined',
+    npLobbyingActivity: 'Limited (within IRS thresholds)',
+    np501hElection: 'No',
+    npSisterOrg: 'Test Liberty Action Fund (c4)',
+    npFiscalSponsor: '',
+
+    // ─── PAC Profile (S2E) ───
+    pacFoundingYear: '2020',
+    pacFecCommitteeId: 'C00999999',
+    pacMissionStatement: 'Test PAC mission statement.',
+    pacIssueFocus: 'Test issue focus paragraph.',
+    pacCoreValues: [
+      { value: 'Liberty' },
+      { value: 'Accountability' },
+      { value: 'Constitutional Fidelity' },
+    ],
+    pacPrimaryActivity: 'Direct contributions + IE',
+    pacFecFilingFrequency: 'Quarterly',
+    pacFecRegistrationStatus: 'Registered',
+    pacIeOnly: 'No',
+    pacSponsoringOrg: '',
+    pacAffiliatedCommittees: 'Test Affiliated PAC',
+    pacSupportedCausesNarrative: 'Test narrative on supported causes.',
+    pacNotableWins: '2024: 7 of 10 supported candidates won.',
+
+    // ─── Narrative additions ───
+    whyNonprofitExists: 'Test reason this nonprofit exists.',
+    whyPacExists: 'Test reason this PAC exists.',
+    npFoundingMoment: 'Test nonprofit founding moment narrative.',
+    pacFoundingMoment: 'Test PAC founding moment narrative.',
+    npDifferentiation: 'Test differentiation vs peer organizations.',
+    pacDifferentiation: 'Test differentiation vs peer PACs.',
+
+    // ─── Record additions ───
+    npImpactWins: 'Test top program / policy victories with measurable outcomes.',
+    npPastGrantsAwarded: 'Test major grant: $250K from Test Foundation (2024)',
+    pacElectoralWins: 'Test electoral wins — supported candidates who won.',
+    pacIeExpenditures: '2024 IE in IL-13: $180K, candidate won.',
+    pacContributionsHighlight: 'Direct contributions to 22 candidates in 2024 cycle.',
+
+    // ─── Compliance additions ───
+    stateCharityAgency: 'Illinois Attorney General — Charitable Trust Bureau',
+    charitableRegistrationStates: 'IL, IN, MI, WI',
+    taxDeductibilityDisclaimer: 'Contributions are tax-deductible to the extent permitted by law. EIN: 12-3456789.',
+    irsForm990Link: 'https://example.org/990-2024.pdf',
+    pacAuthorizationDisclaimer: 'Paid for by Test Liberty PAC. Not authorized by any candidate or candidate\'s committee.',
+    ieDisclaimer: 'This communication is an independent expenditure not authorized by any candidate or candidate\'s committee.',
+    prohibitedContributors: 'Cannot accept contributions from foreign nationals or federal contractors.',
+
+    // ─── Inspiration additions ───
+    websitesLikedNonprofit: 'https://example.org/nonprofit-liked',
+    websitesAvoidNonprofit: 'https://example.org/nonprofit-avoid',
+    websitesLikedPac: 'https://example.com/pac-liked',
+    websitesAvoidPac: 'https://example.com/pac-avoid',
+
     // Opt-in toggles — flip on so optional sections render in PDF
-    optInLeadership: subjectType === 'party' ? 'yes' : '',
+    optInLeadership: ['party', 'nonprofit', 'pac'].includes(subjectType) ? 'yes' : '',
     optInVoterRes: subjectType === 'candidate' ? 'yes' : '',
-    optInMembership: subjectType === 'party' ? 'yes' : '',
-    optInPublicGov: subjectType === 'party' ? 'yes' : '',
+    optInMembership: ['party', 'nonprofit'].includes(subjectType) ? 'yes' : '',
+    optInPublicGov: ['party', 'nonprofit'].includes(subjectType) ? 'yes' : '',
   };
   return base;
 }
@@ -279,11 +362,12 @@ export default function AutofillButton() {
   const handleClick = () => {
     const params = new URLSearchParams(window.location.search);
     const urlSubject = (params.get('subject') || '').toLowerCase();
-    if (urlSubject === 'candidate' || urlSubject === 'party') {
+    const ALLOWED = ['candidate', 'party', 'nonprofit', 'pac'];
+    if (ALLOWED.includes(urlSubject)) {
       fill(urlSubject);
       return;
     }
-    if (state.subjectType === 'candidate' || state.subjectType === 'party') {
+    if (ALLOWED.includes(state.subjectType)) {
       fill(state.subjectType);
       return;
     }
@@ -335,17 +419,27 @@ export default function AutofillButton() {
             <p style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', color: '#111' }}>
               Autofill: subject type?
             </p>
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <button
                 type="button"
                 onClick={() => { setOpen(false); fill('candidate'); }}
-                style={{ flex: 1, padding: '12px 16px', borderRadius: 8, border: '1px solid #1C2E5B', background: '#1C2E5B', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid #1C2E5B', background: '#1C2E5B', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
               >Candidate</button>
               <button
                 type="button"
                 onClick={() => { setOpen(false); fill('party'); }}
-                style={{ flex: 1, padding: '12px 16px', borderRadius: 8, border: '1px solid #B22234', background: '#B22234', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid #B22234', background: '#B22234', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
               >Party</button>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); fill('nonprofit'); }}
+                style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid #0F766E', background: '#0F766E', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+              >Nonprofit</button>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); fill('pac'); }}
+                style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid #7C3AED', background: '#7C3AED', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+              >PAC</button>
             </div>
             <button
               type="button"
