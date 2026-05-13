@@ -95,7 +95,43 @@ const initial = {
   notablePastWins: '',
   internalCommitteeStructure: '',
 
-  // 2C. Leadership Profiles (party only, repeating)
+  // 2D. Nonprofit Profile (nonprofit only)
+  npFoundingYear: '',
+  npFoundingStory: '',
+  npMissionStatement: '',
+  npVisionStatement: '',
+  npCoreValues: [{ value: '' }, { value: '' }, { value: '' }],
+  npProgramAreas: '',                  // "platform pillars" equivalent
+  npPositionBriefs: [{ title: '', summary: '', link: '' }],
+  npImpactMetrics: '',                 // e.g. "served 12,000 families in 2025"
+  npAnnualBudget: '',                  // optional public stat
+  npTopFunders: '',                    // optional, if disclosed publicly
+  npChapterDirectory: [{ name: '', region: '', contact: '', url: '' }],
+  npCoalitionPartners: '',
+  npNotablePastWins: '',
+  npBoardStructure: '',                // public-facing board / governance
+  npIrsDeterminationStatus: '',        // dropdown
+  npLobbyingActivity: '',              // dropdown
+  np501hElection: '',                  // c3 only — Yes/No/N/A
+  npSisterOrg: '',                     // affiliated c3/c4/c6
+  npFiscalSponsor: '',                 // optional
+
+  // 2E. PAC Profile (pac only)
+  pacFoundingYear: '',
+  pacFecCommitteeId: '',
+  pacMissionStatement: '',
+  pacIssueFocus: '',
+  pacPrimaryActivity: '',              // IE / contributions / both / hybrid
+  pacAffiliatedCommittees: '',
+  pacSponsoringOrg: '',                // connected PACs
+  pacFecFilingFrequency: '',           // dropdown
+  pacFecRegistrationStatus: '',        // dropdown (mirrors Form 1)
+  pacSupportedCausesNarrative: '',
+  pacNotableWins: '',                  // past electoral wins
+  pacIeOnly: '',                       // Yes/No (super PAC)
+  pacCoreValues: [{ value: '' }, { value: '' }, { value: '' }],
+
+  // 2C. Leadership Profiles (party / nonprofit / pac — any org, repeating)
   leadershipProfiles: [{
     name: '', title: '', shortBio: '', longBio: '', headshot: '',
     cityState: '', background: '', joinedYear: '', socialHandles: '', quote: '',
@@ -105,10 +141,16 @@ const initial = {
   // 3. Narrative & Messaging
   whyRunning: '',           // candidate
   whyPartyExists: '',       // party
+  whyNonprofitExists: '',   // nonprofit
+  whyPacExists: '',         // pac
   incitingMoment: '',       // candidate
   foundingMoment: '',       // party — narrative
+  npFoundingMoment: '',     // nonprofit — narrative
+  pacFoundingMoment: '',    // pac — narrative
   differentiationOpponent: '', // candidate
   differentiationOther: '', // party
+  npDifferentiation: '',    // nonprofit (vs peer orgs)
+  pacDifferentiation: '',   // pac (vs peer PACs)
   voterFeel: '',
   voterDo: '',
   elevatorPitch: '',
@@ -119,8 +161,12 @@ const initial = {
     name: '', position: '', supportingDetail: '',
     personalConnection: '',  // candidate
     partyRationale: '',      // party
+    nonprofitRationale: '',  // nonprofit (why this org takes this position)
+    pacRationale: '',        // pac (strategic rationale)
     contrastOpponent: '',    // candidate
     contrastOtherParties: '',// party
+    contrastPeerOrgs: '',    // nonprofit
+    contrastPeerPacs: '',    // pac
   })),
 
   // 5. Record & Receipts
@@ -128,6 +174,11 @@ const initial = {
   votesAttackedPreempt: '',       // candidate
   partyLegislativeWins: '',       // party
   pastEndorsementsByParty: '',    // party
+  npImpactWins: '',               // nonprofit — top programs/policy victories
+  npPastGrantsAwarded: '',        // nonprofit — major grants received (if disclosable)
+  pacElectoralWins: '',           // pac — candidates supported who won
+  pacIeExpenditures: '',          // pac — notable past IE spends
+  pacContributionsHighlight: '',  // pac — notable direct contributions
   securedEndorsements: '',
   notableSupporters: '',          // both, capped at 10 (UI hint)
   personalEndorsements: '',       // candidate
@@ -135,9 +186,9 @@ const initial = {
   // 6. Risk / Legal
   topicsAvoid: '',
   topicsLegalReview: '',
-  internalDisagreements: '',      // party
+  internalDisagreements: '',      // party / nonprofit / pac
   campaignCounsel: '',            // candidate
-  generalCounsel: '',             // party
+  generalCounsel: '',             // party / nonprofit / pac (org-level counsel)
 
   // 7. Compliance / Disclosures
   paidForDisclaimer: '',
@@ -145,7 +196,14 @@ const initial = {
   stateElectionAgency: '',
   localElectionAuthority: '',     // candidate
   applicableStatutes: '',
-  fecReportingRequired: '',       // party
+  fecReportingRequired: '',       // party / pac
+  stateCharityAgency: '',         // nonprofit — state attorney general / charity reg
+  charitableRegistrationStates: '', // nonprofit — states where registered to solicit
+  taxDeductibilityDisclaimer: '', // nonprofit (c3) — "contributions deductible to extent permitted"
+  irsForm990Link: '',             // nonprofit — public 990 link
+  pacAuthorizationDisclaimer: '', // pac — "paid for by X PAC, not authorized by any candidate"
+  ieDisclaimer: '',               // pac (super/hybrid) — independent expenditure disclaimer
+  prohibitedContributors: '',     // pac — foreign nationals / federal contractors notice
   canSpamFooterAddress: '',
 
   // 8. Data Governance
@@ -208,6 +266,10 @@ const initial = {
   websitesAvoidCandidate: '',     // candidate
   websitesLikedParty: '',         // party
   websitesAvoidParty: '',         // party
+  websitesLikedNonprofit: '',     // nonprofit
+  websitesAvoidNonprofit: '',     // nonprofit
+  websitesLikedPac: '',           // pac
+  websitesAvoidPac: '',           // pac
   brandGuidelinesUpload: '',
 
   // 14. Press / Newsroom
@@ -331,7 +393,10 @@ export function ContentProvider({ children }) {
 
   const isParty = state.subjectType === 'party';
   const isCandidate = state.subjectType === 'candidate';
-  const subjectChosen = isParty || isCandidate;
+  const isNonprofit = state.subjectType === 'nonprofit';
+  const isPac = state.subjectType === 'pac';
+  const isOrg = isParty || isNonprofit || isPac;
+  const subjectChosen = isCandidate || isOrg;
 
   const goToStage = useCallback((s) => dispatch({ type: 'SET_STAGE', payload: s }), []);
   const nextStage = useCallback(() => {
@@ -345,9 +410,9 @@ export function ContentProvider({ children }) {
 
   const value = useMemo(() => ({
     state, dispatch, update, updateOptIn, updateIssue, updateRepeating, addRepeating, removeRepeating,
-    isParty, isCandidate, subjectChosen,
+    isParty, isCandidate, isNonprofit, isPac, isOrg, subjectChosen,
     goToStage, nextStage, prevStage,
-  }), [state, update, updateOptIn, updateIssue, updateRepeating, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen, goToStage, nextStage, prevStage]);
+  }), [state, update, updateOptIn, updateIssue, updateRepeating, addRepeating, removeRepeating, isParty, isCandidate, isNonprofit, isPac, isOrg, subjectChosen, goToStage, nextStage, prevStage]);
 
   return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
 }

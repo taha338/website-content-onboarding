@@ -12,9 +12,10 @@ import {
 import RepeatingBlock from '../RepeatingBlock';
 import SectionToggle from '../SectionToggle';
 import {
-  YES_NO, YES_NO_PARTIAL, RECURRING_FREQUENCY,
+  YES_NO, YES_NO_NA, YES_NO_PARTIAL, RECURRING_FREQUENCY,
   PRIVACY_POLICY_STATES, COOKIE_CONSENT,
   TRANSLATION_PROVIDERS, HOSTING_PREFERENCE,
+  IRS_DETERMINATION_STATUS, LOBBYING_ACTIVITY, FEC_FILING_FREQUENCY,
 } from '../../lib/options';
 
 /**
@@ -267,10 +268,135 @@ export function S2BPartyProfile() {
   );
 }
 
-/* ─── 2C. Leadership Profiles (party only, repeating) ─── */
+/* ─── 2D. Nonprofit Profile ─── */
+export function S2DNonprofitProfile() {
+  const { state, update, updateRepeating, addRepeating, removeRepeating, isNonprofit } = useContent();
+  if (!isNonprofit) return null;
+  return (
+    <Section defaultOpen index="2D" title="Nonprofit Profile">
+      <TwoCol>
+        <TextField label="Founding Year" optional value={state.npFoundingYear} onChange={(v) => update({ npFoundingYear: v })} help="Auto from Form 1." />
+        <Select label="IRS Determination Status" value={state.npIrsDeterminationStatus} onChange={(v) => update({ npIrsDeterminationStatus: v })} options={IRS_DETERMINATION_STATUS} />
+      </TwoCol>
+      <TextArea label="Founding Story — long form" rows={5} value={state.npFoundingStory} onChange={(v) => update({ npFoundingStory: v })} help="How and why the organization was founded." />
+      <TextArea label="Mission Statement" rows={3} value={state.npMissionStatement} onChange={(v) => update({ npMissionStatement: v })} />
+      <TextArea label="Vision Statement" rows={3} value={state.npVisionStatement} onChange={(v) => update({ npVisionStatement: v })} />
+
+      <RepeatingBlock
+        label="Core Values"
+        help="Minimum 3."
+        items={state.npCoreValues}
+        minRows={3}
+        onAdd={() => addRepeating('npCoreValues', { value: '' })}
+        onRemove={(i) => removeRepeating('npCoreValues', i)}
+        addLabel="Add another value"
+        renderRow={(row, i) => (
+          <TextField label={`Value ${i + 1}`} value={row.value} onChange={(v) => updateRepeating('npCoreValues', i, { value: v })} />
+        )}
+      />
+
+      <TextArea label="Program Areas / Service Lines — full descriptions" rows={5} value={state.npProgramAreas} onChange={(v) => update({ npProgramAreas: v })} help="Major program areas; one paragraph each." />
+
+      <RepeatingBlock
+        label="Position Briefs / Policy Papers"
+        items={state.npPositionBriefs}
+        onAdd={() => addRepeating('npPositionBriefs', { title: '', summary: '', link: '' })}
+        onRemove={(i) => removeRepeating('npPositionBriefs', i)}
+        addLabel="Add another brief"
+        renderRow={(row, i) => (
+          <>
+            <TextField label="Title" value={row.title} onChange={(v) => updateRepeating('npPositionBriefs', i, { title: v })} />
+            <TextArea label="Summary" rows={2} value={row.summary} onChange={(v) => updateRepeating('npPositionBriefs', i, { summary: v })} />
+            <TextField label="Link" optional value={row.link} onChange={(v) => updateRepeating('npPositionBriefs', i, { link: v })} />
+          </>
+        )}
+      />
+
+      <TextArea label="Impact Metrics (public-facing)" rows={3} value={state.npImpactMetrics} onChange={(v) => update({ npImpactMetrics: v })} placeholder="e.g. served 12,000 families in 2025; trained 400 volunteers." />
+      <TwoCol>
+        <TextField label="Annual Budget (public)" optional value={state.npAnnualBudget} onChange={(v) => update({ npAnnualBudget: v })} />
+        <TextField label="Top Funders (if disclosed publicly)" optional value={state.npTopFunders} onChange={(v) => update({ npTopFunders: v })} />
+      </TwoCol>
+
+      <RepeatingBlock
+        label="Chapter / Affiliate Directory"
+        items={state.npChapterDirectory}
+        onAdd={() => addRepeating('npChapterDirectory', { name: '', region: '', contact: '', url: '' })}
+        onRemove={(i) => removeRepeating('npChapterDirectory', i)}
+        addLabel="Add another affiliate"
+        renderRow={(row, i) => (
+          <>
+            <TwoCol>
+              <TextField label="Chapter/Affiliate name" value={row.name} onChange={(v) => updateRepeating('npChapterDirectory', i, { name: v })} />
+              <TextField label="Region" value={row.region} onChange={(v) => updateRepeating('npChapterDirectory', i, { region: v })} />
+            </TwoCol>
+            <TwoCol>
+              <TextField label="Contact" value={row.contact} onChange={(v) => updateRepeating('npChapterDirectory', i, { contact: v })} />
+              <TextField label="URL" optional value={row.url} onChange={(v) => updateRepeating('npChapterDirectory', i, { url: v })} />
+            </TwoCol>
+          </>
+        )}
+      />
+
+      <TextArea label="Coalition Partners / Affiliated Organizations (public)" rows={3} value={state.npCoalitionPartners} onChange={(v) => update({ npCoalitionPartners: v })} />
+      <TextArea label="Notable Past Wins / Milestones" rows={4} value={state.npNotablePastWins} onChange={(v) => update({ npNotablePastWins: v })} />
+      <TextArea label="Board Structure (public-facing)" optional rows={4} value={state.npBoardStructure} onChange={(v) => update({ npBoardStructure: v })} help="Number of seats, committees, governance summary." />
+
+      <Select label="Lobbying Activity" value={state.npLobbyingActivity} onChange={(v) => update({ npLobbyingActivity: v })} options={LOBBYING_ACTIVITY} help="Affects how the site discusses policy advocacy." />
+      <TwoCol>
+        <Select label="501(h) Election Made? (c3 only)" value={state.np501hElection} onChange={(v) => update({ np501hElection: v })} options={YES_NO_NA} />
+        <TextField label="Affiliated Sister Org (c3 / c4 / c6)" optional value={state.npSisterOrg} onChange={(v) => update({ npSisterOrg: v })} />
+      </TwoCol>
+      <TextField label="Fiscal Sponsor (if applicable)" optional value={state.npFiscalSponsor} onChange={(v) => update({ npFiscalSponsor: v })} />
+    </Section>
+  );
+}
+
+/* ─── 2E. PAC Profile ─── */
+export function S2EPacProfile() {
+  const { state, update, updateRepeating, addRepeating, removeRepeating, isPac } = useContent();
+  if (!isPac) return null;
+  return (
+    <Section defaultOpen index="2E" title="PAC Profile">
+      <TwoCol>
+        <TextField label="Founding Year" optional value={state.pacFoundingYear} onChange={(v) => update({ pacFoundingYear: v })} />
+        <TextField label="FEC Committee ID" optional value={state.pacFecCommitteeId} onChange={(v) => update({ pacFecCommitteeId: v })} help="Auto from Form 1. Appears in site footer / disclaimers." />
+      </TwoCol>
+      <TextArea label="Mission Statement" rows={3} value={state.pacMissionStatement} onChange={(v) => update({ pacMissionStatement: v })} />
+      <TextArea label="Issue Focus / Priorities" rows={3} value={state.pacIssueFocus} onChange={(v) => update({ pacIssueFocus: v })} help="The PAC's primary policy or electoral focus." />
+
+      <RepeatingBlock
+        label="Core Values"
+        help="Minimum 3."
+        items={state.pacCoreValues}
+        minRows={3}
+        onAdd={() => addRepeating('pacCoreValues', { value: '' })}
+        onRemove={(i) => removeRepeating('pacCoreValues', i)}
+        addLabel="Add another value"
+        renderRow={(row, i) => (
+          <TextField label={`Value ${i + 1}`} value={row.value} onChange={(v) => updateRepeating('pacCoreValues', i, { value: v })} />
+        )}
+      />
+
+      <TwoCol>
+        <TextField label="Primary Activity" value={state.pacPrimaryActivity} onChange={(v) => update({ pacPrimaryActivity: v })} placeholder="IE / Direct contributions / Both / Hybrid" />
+        <Select label="FEC Filing Frequency" value={state.pacFecFilingFrequency} onChange={(v) => update({ pacFecFilingFrequency: v })} options={FEC_FILING_FREQUENCY} />
+      </TwoCol>
+      <RadioGroup label="Independent-Expenditure-Only (Super PAC)?" value={state.pacIeOnly} onChange={(v) => update({ pacIeOnly: v })} options={YES_NO} />
+      <TextField label="Sponsoring Organization (connected PACs)" optional value={state.pacSponsoringOrg} onChange={(v) => update({ pacSponsoringOrg: v })} />
+      <TextArea label="Affiliated Committees Under Common Control" optional rows={3} value={state.pacAffiliatedCommittees} onChange={(v) => update({ pacAffiliatedCommittees: v })} />
+
+      <TextArea label="Supported Causes / Candidates — narrative" rows={4} value={state.pacSupportedCausesNarrative} onChange={(v) => update({ pacSupportedCausesNarrative: v })} help="The 'why' the site communicates to donors." />
+      <TextArea label="Notable Past Wins / Milestones" rows={4} value={state.pacNotableWins} onChange={(v) => update({ pacNotableWins: v })} />
+    </Section>
+  );
+}
+
+/* ─── 2C. Leadership Profiles (org — party / nonprofit / pac, repeating) ─── */
 export function S2CLeadership() {
-  const { state, update, updateRepeating, addRepeating, removeRepeating, isParty } = useContent();
-  if (!isParty) return null;
+  const { state, update, updateRepeating, addRepeating, removeRepeating, isOrg, isParty, isNonprofit } = useContent();
+  if (!isOrg) return null;
+  const orgLabel = isParty ? 'Party' : isNonprofit ? 'Org' : 'PAC';
   return (
     <Section defaultOpen index="2C" title="Leadership Profiles" subtitle="One block per public-facing leader.">
       <SharingInstructions />
@@ -293,21 +419,21 @@ export function S2CLeadership() {
             </TwoCol>
             <TwoCol>
               <TextField label="Background" value={row.background} onChange={(v) => updateRepeating('leadershipProfiles', i, { background: v })} placeholder="Career, military, faith, etc." />
-              <TextField label="Joined Party (year)" value={row.joinedYear} onChange={(v) => updateRepeating('leadershipProfiles', i, { joinedYear: v })} />
+              <TextField label={`Joined ${orgLabel} (year)`} value={row.joinedYear} onChange={(v) => updateRepeating('leadershipProfiles', i, { joinedYear: v })} />
             </TwoCol>
             <TextField label="Social Handles" optional value={row.socialHandles} onChange={(v) => updateRepeating('leadershipProfiles', i, { socialHandles: v })} />
             <TextArea label="Quote / 'why I serve'" optional rows={2} value={row.quote} onChange={(v) => updateRepeating('leadershipProfiles', i, { quote: v })} />
           </>
         )}
       />
-      <TextArea label="Past Chairs / Leadership History" optional rows={4} value={state.pastChairs} onChange={(v) => update({ pastChairs: v })} help="Repeating: name + title + tenure + photo link" />
+      <TextArea label="Past Leaders / Leadership History" optional rows={4} value={state.pastChairs} onChange={(v) => update({ pastChairs: v })} help="Repeating: name + title + tenure + photo link" />
     </Section>
   );
 }
 
 /* ─── 3. Narrative & Messaging ─── */
 export function S3Narrative() {
-  const { state, update, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, update, isParty, isCandidate, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="3" title="Narrative &amp; Messaging">
@@ -325,6 +451,20 @@ export function S3Narrative() {
           <TextArea label="Differentiation vs. other parties / status quo" rows={3} value={state.differentiationOther} onChange={(v) => update({ differentiationOther: v })} />
         </>
       )}
+      {isNonprofit && (
+        <>
+          <TextArea label="Why does this nonprofit exist?" rows={4} value={state.whyNonprofitExists} onChange={(v) => update({ whyNonprofitExists: v })} />
+          <TextArea label="Founding moment / catalyst (narrative)" rows={3} value={state.npFoundingMoment} onChange={(v) => update({ npFoundingMoment: v })} help="The emotional/homepage version." />
+          <TextArea label="Differentiation vs. peer organizations" rows={3} value={state.npDifferentiation} onChange={(v) => update({ npDifferentiation: v })} help="What makes this org distinct from others working in the same space." />
+        </>
+      )}
+      {isPac && (
+        <>
+          <TextArea label="Why does this PAC exist?" rows={4} value={state.whyPacExists} onChange={(v) => update({ whyPacExists: v })} />
+          <TextArea label="Founding moment / catalyst (narrative)" rows={3} value={state.pacFoundingMoment} onChange={(v) => update({ pacFoundingMoment: v })} />
+          <TextArea label="Differentiation vs. peer PACs" rows={3} value={state.pacDifferentiation} onChange={(v) => update({ pacDifferentiation: v })} help="Why a donor should give here vs. similar PACs." />
+        </>
+      )}
       <TextField label="What do you want a visitor to FEEL?" value={state.voterFeel} onChange={(v) => update({ voterFeel: v })} placeholder="Hope, urgency, pride…" />
       <TextField label="What do you want them to DO?" value={state.voterDo} onChange={(v) => update({ voterDo: v })} placeholder="Vote, donate, join, volunteer, attend" />
       <TextArea label="30-second elevator pitch" rows={3} value={state.elevatorPitch} onChange={(v) => update({ elevatorPitch: v })} />
@@ -334,14 +474,16 @@ export function S3Narrative() {
 
 /* ─── 4. Issues / Platform — start with 3, "Add another" up to 10 ─── */
 export function S4Issues() {
-  const { state, updateIssue, addRepeating, removeRepeating, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, updateIssue, addRepeating, removeRepeating, isParty, isCandidate, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   const MIN_ISSUES = 3;
   const MAX_ISSUES = 10;
   const blank = {
     name: '', position: '', supportingDetail: '',
     personalConnection: '', partyRationale: '',
+    nonprofitRationale: '', pacRationale: '',
     contrastOpponent: '', contrastOtherParties: '',
+    contrastPeerOrgs: '', contrastPeerPacs: '',
   };
   return (
     <Section defaultOpen index="4" title="Issues / Platform" subtitle="At least 3 issues. Add more if you'd like — up to 10.">
@@ -374,6 +516,18 @@ export function S4Issues() {
               <TextArea label="Contrast with other parties" rows={2} value={row.contrastOtherParties} onChange={(v) => updateIssue(i, { contrastOtherParties: v })} />
             </>
           )}
+          {isNonprofit && (
+            <>
+              <TextArea label="Nonprofit rationale — why this org takes this position" rows={3} value={row.nonprofitRationale} onChange={(v) => updateIssue(i, { nonprofitRationale: v })} />
+              <TextArea label="Contrast with peer organizations" rows={2} value={row.contrastPeerOrgs} onChange={(v) => updateIssue(i, { contrastPeerOrgs: v })} />
+            </>
+          )}
+          {isPac && (
+            <>
+              <TextArea label="Strategic rationale — why this issue, why now" rows={3} value={row.pacRationale} onChange={(v) => updateIssue(i, { pacRationale: v })} />
+              <TextArea label="Contrast with peer PACs" rows={2} value={row.contrastPeerPacs} onChange={(v) => updateIssue(i, { contrastPeerPacs: v })} />
+            </>
+          )}
         </div>
       ))}
       {state.issues.length < MAX_ISSUES && (
@@ -391,7 +545,7 @@ export function S4Issues() {
 
 /* ─── 5. Record & Receipts ─── */
 export function S5Record() {
-  const { state, update, updateOptIn, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, update, updateOptIn, isParty, isCandidate, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   const o = state.optIns || {};
   return (
@@ -406,6 +560,19 @@ export function S5Record() {
         <>
           <TextArea label="Top 5 legislative wins / policy victories supported" rows={4} value={state.partyLegislativeWins} onChange={(v) => update({ partyLegislativeWins: v })} />
           <TextArea label="Past endorsements made by the party (historical)" rows={4} value={state.pastEndorsementsByParty} onChange={(v) => update({ pastEndorsementsByParty: v })} help="Distinct from current cycle slate (Section 9)." />
+        </>
+      )}
+      {isNonprofit && (
+        <>
+          <TextArea label="Top program / policy victories" rows={4} value={state.npImpactWins} onChange={(v) => update({ npImpactWins: v })} help="With dates, partners, measurable outcomes." />
+          <TextArea label="Major grants awarded (if disclosable)" optional rows={3} value={state.npPastGrantsAwarded} onChange={(v) => update({ npPastGrantsAwarded: v })} />
+        </>
+      )}
+      {isPac && (
+        <>
+          <TextArea label="Past electoral wins — candidates supported who won" rows={4} value={state.pacElectoralWins} onChange={(v) => update({ pacElectoralWins: v })} />
+          <TextArea label="Notable independent expenditures" optional rows={3} value={state.pacIeExpenditures} onChange={(v) => update({ pacIeExpenditures: v })} help="Race, amount, outcome." />
+          <TextArea label="Notable direct contributions to candidates / committees" optional rows={3} value={state.pacContributionsHighlight} onChange={(v) => update({ pacContributionsHighlight: v })} />
         </>
       )}
 
@@ -433,19 +600,19 @@ export function S5Record() {
 
 /* ─── 6. Risk / Legal ─── */
 export function S6RiskLegal() {
-  const { state, update, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, update, isParty, isCandidate, isOrg, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="6" title="Risk &amp; Legal">
       <TextArea label="Topics to avoid entirely" rows={3} value={state.topicsAvoid} onChange={(v) => update({ topicsAvoid: v })} />
       <TextArea label="Topics requiring legal/compliance review" rows={3} value={state.topicsLegalReview} onChange={(v) => update({ topicsLegalReview: v })} />
-      {isParty && (
+      {isOrg && (
         <TextArea label="Internal disagreements / factions to handle carefully" optional rows={3} value={state.internalDisagreements} onChange={(v) => update({ internalDisagreements: v })} />
       )}
       {isCandidate && (
         <TextField label="Campaign counsel — name & contact" optional value={state.campaignCounsel} onChange={(v) => update({ campaignCounsel: v })} />
       )}
-      {isParty && (
+      {isOrg && (
         <TextField label="General counsel — name & contact" optional value={state.generalCounsel} onChange={(v) => update({ generalCounsel: v })} />
       )}
     </Section>
@@ -454,18 +621,39 @@ export function S6RiskLegal() {
 
 /* ─── 7. Compliance / Disclosures ─── */
 export function S7Compliance() {
-  const { state, update, isParty, isCandidate, subjectChosen } = useContent();
+  const { state, update, isParty, isCandidate, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="7" title="Compliance &amp; Disclosures">
-      <TextArea label="Paid-for disclaimer — exact wording" rows={2} value={state.paidForDisclaimer} onChange={(v) => update({ paidForDisclaimer: v })} />
+      <TextArea label="Paid-for disclaimer — exact wording" rows={2} value={state.paidForDisclaimer} onChange={(v) => update({ paidForDisclaimer: v })} help={isPac ? '"Paid for by [PAC Name]. Not authorized by any candidate or candidate\'s committee." (or applicable variant).' : undefined} />
       <TextArea label="Placement requirements" optional rows={2} value={state.placementRequirements} onChange={(v) => update({ placementRequirements: v })} />
-      <TwoCol>
-        <TextField label="State election agency" value={state.stateElectionAgency} onChange={(v) => update({ stateElectionAgency: v })} />
-        {isCandidate && <TextField label="Local election authority" value={state.localElectionAuthority} onChange={(v) => update({ localElectionAuthority: v })} />}
-      </TwoCol>
+      {(isCandidate || isParty || isPac) && (
+        <TwoCol>
+          <TextField label={isPac ? 'FEC / State election agency' : 'State election agency'} value={state.stateElectionAgency} onChange={(v) => update({ stateElectionAgency: v })} />
+          {isCandidate && <TextField label="Local election authority" value={state.localElectionAuthority} onChange={(v) => update({ localElectionAuthority: v })} />}
+        </TwoCol>
+      )}
+      {isNonprofit && (
+        <TwoCol>
+          <TextField label="State charity / Attorney General registration agency" value={state.stateCharityAgency} onChange={(v) => update({ stateCharityAgency: v })} />
+          <TextField label="States registered to solicit (charitable solicitation)" optional value={state.charitableRegistrationStates} onChange={(v) => update({ charitableRegistrationStates: v })} placeholder="e.g. CA, NY, TX, FL" />
+        </TwoCol>
+      )}
       <TextField label="Applicable disclosure statute / rule numbers" optional value={state.applicableStatutes} onChange={(v) => update({ applicableStatutes: v })} />
-      {isParty && <RadioGroup label="FEC reporting required?" value={state.fecReportingRequired} onChange={(v) => update({ fecReportingRequired: v })} options={YES_NO} />}
+      {(isParty || isPac) && <RadioGroup label="FEC reporting required?" value={state.fecReportingRequired} onChange={(v) => update({ fecReportingRequired: v })} options={YES_NO} />}
+      {isPac && (
+        <>
+          <TextArea label="PAC authorization disclaimer (for site footer + emails)" rows={2} value={state.pacAuthorizationDisclaimer} onChange={(v) => update({ pacAuthorizationDisclaimer: v })} placeholder='e.g. "Paid for by [PAC Name]. Not authorized by any candidate or candidate&apos;s committee."' />
+          <TextArea label="Independent expenditure disclaimer (super / hybrid only)" optional rows={2} value={state.ieDisclaimer} onChange={(v) => update({ ieDisclaimer: v })} />
+          <TextArea label="Prohibited contributors notice" rows={2} value={state.prohibitedContributors} onChange={(v) => update({ prohibitedContributors: v })} placeholder="Foreign nationals, federal contractors, corporate (if applicable)…" />
+        </>
+      )}
+      {isNonprofit && (
+        <>
+          <TextArea label="Tax-deductibility disclaimer (c3 only)" rows={2} value={state.taxDeductibilityDisclaimer} onChange={(v) => update({ taxDeductibilityDisclaimer: v })} placeholder='e.g. "Contributions are tax-deductible to the extent permitted by law. EIN: XX-XXXXXXX."' />
+          <TextField label="IRS Form 990 — public link" optional value={state.irsForm990Link} onChange={(v) => update({ irsForm990Link: v })} help="Linked from About / Transparency page." />
+        </>
+      )}
       <TextField label="Physical mailing address (CAN-SPAM footer)" value={state.canSpamFooterAddress} onChange={(v) => update({ canSpamFooterAddress: v })} help="Pre-fills from Form 1." />
     </Section>
   );
@@ -486,10 +674,10 @@ export function S8DataGov() {
 
 /* ─── 9. Endorsed Candidates (party only) ─── */
 export function S9Endorsed() {
-  const { state, update, updateRepeating, addRepeating, removeRepeating, isParty } = useContent();
-  if (!isParty) return null;
+  const { state, update, updateRepeating, addRepeating, removeRepeating, isParty, isPac } = useContent();
+  if (!(isParty || isPac)) return null;
   return (
-    <Section defaultOpen index="9" title="Endorsed Candidates" subtitle="Current cycle slate.">
+    <Section defaultOpen index="9" title={isPac ? 'Supported Candidates' : 'Endorsed Candidates'} subtitle="Current cycle slate.">
       <RepeatingBlock
         items={state.endorsedCandidates}
         onAdd={() => addRepeating('endorsedCandidates', { name: '', office: '', state: '', year: '', photo: '', link: '' })}
@@ -520,7 +708,7 @@ export function S9Endorsed() {
 
 /* ─── 10. Events ─── */
 export function S10Events() {
-  const { state, update, isCandidate, isParty, subjectChosen } = useContent();
+  const { state, update, isCandidate, isParty, isOrg, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="10" title="Events">
@@ -529,7 +717,16 @@ export function S10Events() {
         <TextField label="Events Calendar Owner" value={state.eventsCalendarOwner} onChange={(v) => update({ eventsCalendarOwner: v })} />
       </TwoCol>
       <TextArea label="Hard milestones (auto from Form 1)" optional rows={3} value={state.hardMilestonesFromForm1} onChange={(v) => update({ hardMilestonesFromForm1: v })} help="Pre-filled from Form 1; add more if needed." />
-      {isParty && <TextArea label="Recurring events to feature" optional rows={3} value={state.recurringEventsToFeature} onChange={(v) => update({ recurringEventsToFeature: v })} help="Monthly meetings, conventions, etc." />}
+      {isOrg && (
+        <TextArea
+          label="Recurring events to feature"
+          optional
+          rows={3}
+          value={state.recurringEventsToFeature}
+          onChange={(v) => update({ recurringEventsToFeature: v })}
+          help={isParty ? 'Monthly meetings, conventions, etc.' : isNonprofit ? 'Annual gala, donor briefings, monthly programs, etc.' : 'Fundraisers, donor events, etc.'}
+        />
+      )}
       {isCandidate && <TextArea label="Debate schedule + watch-party content" optional rows={3} value={state.debateSchedule} onChange={(v) => update({ debateSchedule: v })} help="Repeating: date + venue + watch-party logistics" />}
       <TextArea label="Event ticketing / RSVP details" optional rows={3} value={state.eventTicketingDetails} onChange={(v) => update({ eventTicketingDetails: v })} help="Platform, seat caps, accessibility accommodations." />
     </Section>
@@ -538,7 +735,7 @@ export function S10Events() {
 
 /* ─── 11. Media Library ─── */
 export function S11Media() {
-  const { state, update, updateOptIn, isCandidate, isParty, subjectChosen } = useContent();
+  const { state, update, updateOptIn, isCandidate, isParty, isOrg, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   const o = state.optIns || {};
   return (
@@ -572,16 +769,16 @@ export function S11Media() {
           </SectionToggle>
         </>
       )}
-      {isParty && (
+      {isOrg && (
         <>
-          <TextField label="Official seal / emblem — link" value={state.officialSeal} onChange={(v) => update({ officialSeal: v })} help="Pre-filled from Form 2 if uploaded there." />
+          <TextField label={isPac ? 'Official mark / seal — link' : isNonprofit ? 'Official seal / logo mark — link' : 'Official seal / emblem — link'} value={state.officialSeal} onChange={(v) => update({ officialSeal: v })} help="Pre-filled from Form 2 if uploaded there." />
           <TwoCol>
             <TextField label="Leadership headshots — folder link" optional value={state.leadershipHeadshots} onChange={(v) => update({ leadershipHeadshots: v })} />
-            <TextField label="Event photos — folder link" optional value={state.eventPhotos} onChange={(v) => update({ eventPhotos: v })} />
+            <TextField label={isNonprofit ? 'Program / impact photos — folder link' : 'Event photos — folder link'} optional value={state.eventPhotos} onChange={(v) => update({ eventPhotos: v })} />
           </TwoCol>
           <TwoCol>
-            <TextField label="Rally / convention photos — folder link" optional value={state.rallyConventionPhotos} onChange={(v) => update({ rallyConventionPhotos: v })} />
-            <TextField label="Supporter / crowd shots — folder link" optional value={state.supporterCrowdShots} onChange={(v) => update({ supporterCrowdShots: v })} />
+            <TextField label={isPac ? 'Rally / events photos — folder link' : isNonprofit ? 'Gala / fundraiser photos — folder link' : 'Rally / convention photos — folder link'} optional value={state.rallyConventionPhotos} onChange={(v) => update({ rallyConventionPhotos: v })} />
+            <TextField label={isNonprofit ? 'Beneficiary / community shots — folder link' : 'Supporter / crowd shots — folder link'} optional value={state.supporterCrowdShots} onChange={(v) => update({ supporterCrowdShots: v })} />
           </TwoCol>
           <TextField label="Hero / banner crop — link" value={state.heroBannerCrop} onChange={(v) => update({ heroBannerCrop: v })} />
         </>
@@ -664,7 +861,7 @@ export function S12Social() {
 
 /* ─── 13. Inspiration & References ─── */
 export function S13Inspiration() {
-  const { state, update, isCandidate, isParty, subjectChosen } = useContent();
+  const { state, update, isCandidate, isParty, isNonprofit, isPac, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="13" title="Inspiration &amp; References">
@@ -678,6 +875,18 @@ export function S13Inspiration() {
         <>
           <TextArea label="Three party / org websites you like — why" rows={4} value={state.websitesLikedParty} onChange={(v) => update({ websitesLikedParty: v })} />
           <TextArea label="Three to avoid — why" rows={3} value={state.websitesAvoidParty} onChange={(v) => update({ websitesAvoidParty: v })} />
+        </>
+      )}
+      {isNonprofit && (
+        <>
+          <TextArea label="Three nonprofit websites you like — why" rows={4} value={state.websitesLikedNonprofit} onChange={(v) => update({ websitesLikedNonprofit: v })} />
+          <TextArea label="Three to avoid — why" rows={3} value={state.websitesAvoidNonprofit} onChange={(v) => update({ websitesAvoidNonprofit: v })} />
+        </>
+      )}
+      {isPac && (
+        <>
+          <TextArea label="Three PAC / advocacy websites you like — why" rows={4} value={state.websitesLikedPac} onChange={(v) => update({ websitesLikedPac: v })} />
+          <TextArea label="Three to avoid — why" rows={3} value={state.websitesAvoidPac} onChange={(v) => update({ websitesAvoidPac: v })} />
         </>
       )}
       <TextField label="Brand guidelines document — link" optional value={state.brandGuidelinesUpload} onChange={(v) => update({ brandGuidelinesUpload: v })} />
@@ -763,7 +972,7 @@ export function S18EmailContent() {
 
 /* ─── 19. Fundraising Page ─── */
 export function S19Fundraising() {
-  const { state, update, subjectChosen } = useContent();
+  const { state, update, isNonprofit, isPac, isCandidate, isParty, subjectChosen } = useContent();
   if (!subjectChosen) return null;
   return (
     <Section defaultOpen index="19" title="Fundraising Page">
@@ -772,8 +981,18 @@ export function S19Fundraising() {
       {state.recurringDonationDefault === 'On' && (
         <Select label="Recurring frequency" value={state.recurringFrequency} onChange={(v) => update({ recurringFrequency: v })} options={RECURRING_FREQUENCY} />
       )}
-      <TextArea label="Contribution-limit disclaimer text" rows={2} value={state.contributionLimitDisclaimer} onChange={(v) => update({ contributionLimitDisclaimer: v })} help="Federal/state limits — exact wording." />
-      <TextArea label="Donor eligibility disclaimer text" rows={2} value={state.donorEligibilityDisclaimer} onChange={(v) => update({ donorEligibilityDisclaimer: v })} help="Citizen / not foreign national / not federal contractor." />
+      {(isCandidate || isParty || isPac) && (
+        <>
+          <TextArea label="Contribution-limit disclaimer text" rows={2} value={state.contributionLimitDisclaimer} onChange={(v) => update({ contributionLimitDisclaimer: v })} help="Federal/state limits — exact wording." />
+          <TextArea label="Donor eligibility disclaimer text" rows={2} value={state.donorEligibilityDisclaimer} onChange={(v) => update({ donorEligibilityDisclaimer: v })} help="Citizen / not foreign national / not federal contractor." />
+        </>
+      )}
+      {isNonprofit && (
+        <>
+          <TextArea label="Tax-deductibility disclaimer (c3 only)" rows={2} value={state.taxDeductibilityDisclaimer} onChange={(v) => update({ taxDeductibilityDisclaimer: v })} help='Exact wording for donation pages, e.g. "Contributions are tax-deductible to the extent permitted by law."' />
+          <TextField label="IRS Form 990 — public link" optional value={state.irsForm990Link} onChange={(v) => update({ irsForm990Link: v })} />
+        </>
+      )}
     </Section>
   );
 }
@@ -797,8 +1016,8 @@ export function S20VoterResources() {
 
 /* ─── 21. Membership Pages (party) ─── */
 export function S21Membership() {
-  const { state, update, isParty } = useContent();
-  if (!isParty) return null;
+  const { state, update, isParty, isNonprofit } = useContent();
+  if (!(isParty || isNonprofit)) return null;
   return (
     <Section defaultOpen index="21" title="Membership Pages">
       <TextArea label="Membership tiers & benefits" rows={5} value={state.membershipTiersBenefits} onChange={(v) => update({ membershipTiersBenefits: v })} help="Repeating: tier name + price + benefits." />
@@ -809,10 +1028,10 @@ export function S21Membership() {
 
 /* ─── 22. Public Governance (party) ─── */
 export function S22PublicGov() {
-  const { state, update, isParty } = useContent();
-  if (!isParty) return null;
+  const { state, update, isParty, isNonprofit } = useContent();
+  if (!(isParty || isNonprofit)) return null;
   return (
-    <Section defaultOpen index="22" title="Public Governance">
+    <Section defaultOpen index="22" title={isNonprofit ? 'Public Governance & Transparency' : 'Public Governance'}>
       <SharingInstructions />
       <TwoCol>
         <TextField label="Bylaws (public version) — link" value={state.bylawsPublic} onChange={(v) => update({ bylawsPublic: v })} />
