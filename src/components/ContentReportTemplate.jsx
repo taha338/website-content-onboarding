@@ -129,7 +129,21 @@ export default function ContentReportTemplate({ state }) {
 
   const isCandidate = state.subjectType === 'candidate';
   const isParty = state.subjectType === 'party';
-  const headline = state.displayName || (isParty ? 'Party Website Content' : 'Website Content Brief');
+  const isNonprofit = state.subjectType === 'nonprofit';
+  const isPac = state.subjectType === 'pac';
+  const isOrg = isParty || isNonprofit || isPac;
+  const headline = state.displayName || (
+    isParty     ? 'Party Website Content' :
+    isNonprofit ? 'Nonprofit Website Content' :
+    isPac       ? 'PAC Website Content' :
+                  'Website Content Brief'
+  );
+  const heroLabel =
+    isParty     ? 'Party Website' :
+    isCandidate ? 'Candidate Website' :
+    isNonprofit ? 'Nonprofit Website' :
+    isPac       ? 'PAC Website' :
+                  'Website';
 
   const educationLines = (state.education || [])
     .filter((e) => e && (e.school || e.degree))
@@ -159,6 +173,26 @@ export default function ContentReportTemplate({ state }) {
   const endorsedSlateLines = (state.endorsedCandidates || [])
     .filter((c) => c && c.name)
     .map((c) => `• ${c.name} — ${c.office || ''}, ${c.state || ''} (${c.year || ''})${c.link ? ' — ' + c.link : ''}`)
+    .join('\n');
+
+  const npCoreValueLines = (state.npCoreValues || [])
+    .filter((v) => v && v.value)
+    .map((v) => `• ${v.value}`)
+    .join('\n');
+
+  const npPositionBriefLines = (state.npPositionBriefs || [])
+    .filter((p) => p && p.title)
+    .map((p) => `• ${p.title} — ${p.summary || ''}${p.link ? ' (' + p.link + ')' : ''}`)
+    .join('\n');
+
+  const npChapterDirLines = (state.npChapterDirectory || [])
+    .filter((c) => c && c.name)
+    .map((c) => `• ${c.name} — ${c.region || ''} — ${c.contact || ''}${c.url ? ' (' + c.url + ')' : ''}`)
+    .join('\n');
+
+  const pacCoreValueLines = (state.pacCoreValues || [])
+    .filter((v) => v && v.value)
+    .map((v) => `• ${v.value}`)
     .join('\n');
 
   const pressReleaseLines = (state.recentPressReleases || [])
@@ -208,7 +242,7 @@ export default function ContentReportTemplate({ state }) {
           fontSize: 12, fontWeight: 700, letterSpacing: '0.28em',
           textTransform: 'uppercase', color: '#FFFFFF', opacity: 0.78,
           margin: '0 0 18px', fontFamily: BODY_FONT,
-        }}>{isParty ? 'Party Website' : isCandidate ? 'Candidate Website' : 'Website'}</p>
+        }}>{heroLabel}</p>
 
         <h2 style={{
           fontFamily: HEADING_FONT,
@@ -293,7 +327,48 @@ export default function ContentReportTemplate({ state }) {
         </Section>
       )}
 
-      {isParty && state.leadershipProfiles?.some?.((l) => l && l.name) && (
+      {isNonprofit && (
+        <Section number="2D" label="Nonprofit Profile" title="Nonprofit Profile">
+          <Field label="Founding Year" value={state.npFoundingYear} />
+          <Field label="Founding Story" value={state.npFoundingStory} />
+          <Field label="Mission Statement" value={state.npMissionStatement} />
+          <Field label="Vision Statement" value={state.npVisionStatement} />
+          <Field label="Core Values" value={npCoreValueLines} />
+          <Field label="Program Areas / Service Lines" value={state.npProgramAreas} />
+          <Field label="Position Briefs / Policy Papers" value={npPositionBriefLines} />
+          <Field label="Impact Metrics" value={state.npImpactMetrics} />
+          <Field label="Annual Budget" value={state.npAnnualBudget} />
+          <Field label="Top Funders" value={state.npTopFunders} />
+          <Field label="Chapter / Affiliate Directory" value={npChapterDirLines} />
+          <Field label="Coalition Partners" value={state.npCoalitionPartners} />
+          <Field label="Notable Past Wins" value={state.npNotablePastWins} />
+          <Field label="Board Structure" value={state.npBoardStructure} />
+          <Field label="IRS Determination Status" value={state.npIrsDeterminationStatus} />
+          <Field label="Lobbying Activity" value={state.npLobbyingActivity} />
+          <Field label="501(h) Election" value={state.np501hElection} />
+          <Field label="Sister Org (c3 / c4 / c6)" value={state.npSisterOrg} />
+          <Field label="Fiscal Sponsor" value={state.npFiscalSponsor} />
+        </Section>
+      )}
+
+      {isPac && (
+        <Section number="2E" label="PAC Profile" title="PAC Profile">
+          <Field label="Founding Year" value={state.pacFoundingYear} />
+          <Field label="FEC Committee ID" value={state.pacFecCommitteeId} />
+          <Field label="Mission Statement" value={state.pacMissionStatement} />
+          <Field label="Issue Focus / Priorities" value={state.pacIssueFocus} />
+          <Field label="Core Values" value={pacCoreValueLines} />
+          <Field label="Primary Activity" value={state.pacPrimaryActivity} />
+          <Field label="FEC Filing Frequency" value={state.pacFecFilingFrequency} />
+          <Field label="IE-Only (Super PAC)?" value={state.pacIeOnly} />
+          <Field label="Sponsoring Organization" value={state.pacSponsoringOrg} />
+          <Field label="Affiliated Committees" value={state.pacAffiliatedCommittees} />
+          <Field label="Supported Causes Narrative" value={state.pacSupportedCausesNarrative} />
+          <Field label="Notable Past Wins" value={state.pacNotableWins} />
+        </Section>
+      )}
+
+      {isOrg && state.leadershipProfiles?.some?.((l) => l && l.name) && (
         <div data-pdf-section="" style={{ marginBottom: 36 }}>
           <SectionTitle number="2C" label="Leadership">Leadership Profiles</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -335,10 +410,16 @@ export default function ContentReportTemplate({ state }) {
       <Section number="3" label="Section 3" title="Narrative &amp; Messaging">
         <Field label="Why Running?" value={state.whyRunning} />
         <Field label="Why Party Exists?" value={state.whyPartyExists} />
+        <Field label="Why Nonprofit Exists?" value={state.whyNonprofitExists} />
+        <Field label="Why PAC Exists?" value={state.whyPacExists} />
         <Field label="Inciting Moment" value={state.incitingMoment} />
-        <Field label="Founding Moment" value={state.foundingMoment} />
+        <Field label="Founding Moment (Party)" value={state.foundingMoment} />
+        <Field label="Founding Moment (Nonprofit)" value={state.npFoundingMoment} />
+        <Field label="Founding Moment (PAC)" value={state.pacFoundingMoment} />
         <Field label="Differentiation vs Opponent" value={state.differentiationOpponent} />
         <Field label="Differentiation vs Other Parties" value={state.differentiationOther} />
+        <Field label="Differentiation vs Peer Orgs" value={state.npDifferentiation} />
+        <Field label="Differentiation vs Peer PACs" value={state.pacDifferentiation} />
         <Field label="What Voters Should FEEL" value={state.voterFeel} />
         <Field label="What Voters Should DO" value={state.voterDo} />
         <Field label="Elevator Pitch" value={state.elevatorPitch} />
@@ -367,8 +448,12 @@ export default function ContentReportTemplate({ state }) {
                   <Field label="Supporting Detail" value={row.supportingDetail} />
                   <Field label="Personal Connection" value={row.personalConnection} />
                   <Field label="Party Rationale" value={row.partyRationale} />
+                  <Field label="Nonprofit Rationale" value={row.nonprofitRationale} />
+                  <Field label="PAC Strategic Rationale" value={row.pacRationale} />
                   <Field label="Contrast w/ Opponent" value={row.contrastOpponent} />
                   <Field label="Contrast w/ Other Parties" value={row.contrastOtherParties} />
+                  <Field label="Contrast w/ Peer Orgs" value={row.contrastPeerOrgs} />
+                  <Field label="Contrast w/ Peer PACs" value={row.contrastPeerPacs} />
                 </div>
               </div>
             ))}
@@ -381,6 +466,11 @@ export default function ContentReportTemplate({ state }) {
         <Field label="Votes Likely Attacked" value={state.votesAttackedPreempt} />
         <Field label="Party Legislative Wins" value={state.partyLegislativeWins} />
         <Field label="Past Endorsements (Party)" value={state.pastEndorsementsByParty} />
+        <Field label="Top Program / Policy Victories (Nonprofit)" value={state.npImpactWins} />
+        <Field label="Major Grants Awarded (Nonprofit)" value={state.npPastGrantsAwarded} />
+        <Field label="Past Electoral Wins (PAC)" value={state.pacElectoralWins} />
+        <Field label="Notable IEs (PAC)" value={state.pacIeExpenditures} />
+        <Field label="Notable Direct Contributions (PAC)" value={state.pacContributionsHighlight} />
         <Field label="Secured Endorsements" value={state.securedEndorsements} />
         <Field label="Notable Supporters" value={state.notableSupporters} />
         <Field label="Personal Endorsements" value={state.personalEndorsements} />
@@ -399,6 +489,13 @@ export default function ContentReportTemplate({ state }) {
         <Field label="Placement Requirements" value={state.placementRequirements} />
         <Field label="State Election Agency" value={state.stateElectionAgency} />
         <Field label="Local Election Authority" value={state.localElectionAuthority} />
+        <Field label="State Charity / AG Agency (Nonprofit)" value={state.stateCharityAgency} />
+        <Field label="Charitable Registration States (Nonprofit)" value={state.charitableRegistrationStates} />
+        <Field label="Tax-Deductibility Disclaimer (Nonprofit)" value={state.taxDeductibilityDisclaimer} />
+        <Field label="IRS Form 990 Link (Nonprofit)" value={state.irsForm990Link} />
+        <Field label="PAC Authorization Disclaimer" value={state.pacAuthorizationDisclaimer} />
+        <Field label="Independent Expenditure Disclaimer (PAC)" value={state.ieDisclaimer} />
+        <Field label="Prohibited Contributors Notice (PAC)" value={state.prohibitedContributors} />
         <Field label="Applicable Statutes" value={state.applicableStatutes} />
         <Field label="FEC Reporting Required?" value={state.fecReportingRequired} />
         <Field label="CAN-SPAM Footer Address" value={state.canSpamFooterAddress} />
@@ -410,9 +507,9 @@ export default function ContentReportTemplate({ state }) {
         <Field label="Data-sharing (Public)" value={state.dataSharingPublic} />
       </Section>
 
-      {isParty && (
-        <Section number="9" label="Section 9" title="Endorsed Candidates">
-          <Field label="Endorsed Slate" value={endorsedSlateLines} />
+      {(isParty || isPac) && (
+        <Section number="9" label="Section 9" title={isPac ? 'Supported Candidates' : 'Endorsed Candidates'}>
+          <Field label={isPac ? 'Supported Slate' : 'Endorsed Slate'} value={endorsedSlateLines} />
           <Field label="Endorsement Criteria" value={state.endorsementCriteria} />
           <Field label="Slate Cards / Sample Ballots" value={state.slateCardsUploads} />
         </Section>
@@ -465,6 +562,10 @@ export default function ContentReportTemplate({ state }) {
         <Field label="Websites to Avoid (Candidate)" value={state.websitesAvoidCandidate} />
         <Field label="Websites Liked (Party)" value={state.websitesLikedParty} />
         <Field label="Websites to Avoid (Party)" value={state.websitesAvoidParty} />
+        <Field label="Websites Liked (Nonprofit)" value={state.websitesLikedNonprofit} />
+        <Field label="Websites to Avoid (Nonprofit)" value={state.websitesAvoidNonprofit} />
+        <Field label="Websites Liked (PAC)" value={state.websitesLikedPac} />
+        <Field label="Websites to Avoid (PAC)" value={state.websitesAvoidPac} />
         <Field label="Brand Guidelines" value={state.brandGuidelinesUpload} />
       </Section>
 
@@ -499,6 +600,8 @@ export default function ContentReportTemplate({ state }) {
         <Field label="Recurring Frequency" value={state.recurringFrequency} />
         <Field label="Contribution Limit Disclaimer" value={state.contributionLimitDisclaimer} />
         <Field label="Donor Eligibility Disclaimer" value={state.donorEligibilityDisclaimer} />
+        <Field label="Tax-Deductibility Disclaimer (Nonprofit)" value={state.taxDeductibilityDisclaimer} />
+        <Field label="IRS Form 990 Link (Nonprofit)" value={state.irsForm990Link} />
       </Section>
 
       {isCandidate && (
@@ -511,15 +614,15 @@ export default function ContentReportTemplate({ state }) {
         </Section>
       )}
 
-      {isParty && (
+      {(isParty || isNonprofit) && (
         <Section number="21" label="Section 21" title="Membership Pages">
           <Field label="Membership Tiers & Benefits" value={state.membershipTiersBenefits} />
           <Field label="How-to-Join Workflow (Public)" value={state.howToJoinPublicCopy} />
         </Section>
       )}
 
-      {isParty && (
-        <Section number="22" label="Section 22" title="Public Governance">
+      {(isParty || isNonprofit) && (
+        <Section number="22" label="Section 22" title={isNonprofit ? 'Public Governance & Transparency' : 'Public Governance'}>
           <Field label="Bylaws (Public)" value={state.bylawsPublic} />
           <Field label="Platform Document (Public)" value={state.platformDocPublic} />
           <Field label="Constitution (Public)" value={state.constitutionPublic} />

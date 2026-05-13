@@ -19,7 +19,7 @@ import SubjectTypeToggle from './components/SubjectTypeToggle';
 import OptInGate from './components/OptInGate';
 import AutofillButton from './components/AutofillButton';
 import {
-  S1Identity, S2ACandidateBio, S2BPartyProfile, S2CLeadership,
+  S1Identity, S2ACandidateBio, S2BPartyProfile, S2DNonprofitProfile, S2EPacProfile, S2CLeadership,
   S3Narrative, S4Issues, S5Record, S6RiskLegal, S7Compliance,
   S8DataGov, S9Endorsed, S10Events, S11Media, S12Social,
   S13Inspiration, S14Press, S16SiteCompliance, S17SiteStructure,
@@ -52,7 +52,7 @@ const filledIf = (visible, v) => !visible || filled(v);
 function validateStage1(s) {
   return Boolean(s.subjectType) && filled(s.displayName);
 }
-function validateStage2(s, isCandidate, isParty) {
+function validateStage2(s, isCandidate, isParty, isNonprofit, isPac) {
   if (isCandidate) {
     const eduOk = Array.isArray(s.education)
       && s.education.some((r) => filled(r?.school));
@@ -77,39 +77,59 @@ function validateStage2(s, isCandidate, isParty) {
            filled(s.visionStatement) && coreOk &&
            filled(s.platformPillarsFull);
   }
+  if (isNonprofit) {
+    const coreOk = Array.isArray(s.npCoreValues) &&
+      s.npCoreValues.filter((r) => filled(r?.value)).length >= 3;
+    return filled(s.npMissionStatement) &&
+           filled(s.npVisionStatement) && coreOk &&
+           filled(s.npProgramAreas) &&
+           filled(s.npIrsDeterminationStatus);
+  }
+  if (isPac) {
+    const coreOk = Array.isArray(s.pacCoreValues) &&
+      s.pacCoreValues.filter((r) => filled(r?.value)).length >= 3;
+    return filled(s.pacMissionStatement) &&
+           filled(s.pacIssueFocus) && coreOk &&
+           filled(s.pacPrimaryActivity);
+  }
   return false;
 }
-function validateStage3(s, isCandidate, isParty) {
+function validateStage3(s, isCandidate, isParty, isNonprofit, isPac) {
+  const tail = filled(s.voterFeel) && filled(s.voterDo) && filled(s.tagline) && filled(s.elevatorPitch);
   if (isCandidate) {
-    return filled(s.whyRunning) &&
-           filled(s.incitingMoment) &&
-           filled(s.differentiationOpponent) &&
-           filled(s.voterFeel) &&
-           filled(s.voterDo) &&
-           filled(s.tagline) &&
-           filled(s.elevatorPitch);
+    return filled(s.whyRunning) && filled(s.incitingMoment) && filled(s.differentiationOpponent) && tail;
   }
   if (isParty) {
-    return filled(s.whyPartyExists) &&
-           filled(s.foundingMoment) &&
-           filled(s.differentiationOther) &&
-           filled(s.voterFeel) &&
-           filled(s.voterDo) &&
-           filled(s.tagline) &&
-           filled(s.elevatorPitch);
+    return filled(s.whyPartyExists) && filled(s.foundingMoment) && filled(s.differentiationOther) && tail;
+  }
+  if (isNonprofit) {
+    return filled(s.whyNonprofitExists) && filled(s.npFoundingMoment) && filled(s.npDifferentiation) && tail;
+  }
+  if (isPac) {
+    return filled(s.whyPacExists) && filled(s.pacFoundingMoment) && filled(s.pacDifferentiation) && tail;
   }
   return false;
 }
-function validateStage4(s) {
-  // First 3 issues must each have all 5 core fields per the Wix spec.
+function validateStage4(s, isCandidate, isParty, isNonprofit, isPac) {
   const issues = Array.isArray(s.issues) ? s.issues : [];
   if (issues.length < 3) return false;
+  const rationaleKey =
+    isCandidate ? 'personalConnection' :
+    isParty     ? 'partyRationale' :
+    isNonprofit ? 'nonprofitRationale' :
+    isPac       ? 'pacRationale' : null;
+  const contrastKey =
+    isCandidate ? 'contrastOpponent' :
+    isParty     ? 'contrastOtherParties' :
+    isNonprofit ? 'contrastPeerOrgs' :
+    isPac       ? 'contrastPeerPacs' : null;
+  if (!rationaleKey || !contrastKey) return false;
   return issues.slice(0, 3).every((i) =>
     filled(i?.name) &&
     filled(i?.position) &&
     filled(i?.supportingDetail) &&
-    filled(i?.personalConnection) &&
-    filled(i?.contrastOpponent),
+    filled(i?.[rationaleKey]) &&
+    filled(i?.[contrastKey]),
   );
 }
 function validateStage5(s, isCandidate) {
@@ -121,28 +141,34 @@ function validateStage5(s, isCandidate) {
   }
   return true;
 }
-function validateStage6(s, isCandidate, isParty) {
+function validateStage6(s, isCandidate, isParty, isNonprofit, isPac) {
   if (!filled(s.dataRetentionPolicy)) return false;
   if (!filled(s.supporterDataRequests)) return false;
-  if (isParty && !filled(s.endorsementCriteria)) return false;
+  if ((isParty || isPac) && !filled(s.endorsementCriteria)) return false;
   return true;
 }
-function validateStage7(s, isCandidate) {
-  // Press contact + events calendar + inspiration websites
+function validateStage7(s, isCandidate, isParty, isNonprofit, isPac) {
   if (!filled(s.pressContactName) || !filled(s.pressContactEmail)) return false;
   if (!filled(s.eventsCalendarSource) || !filled(s.eventsCalendarOwner)) return false;
-  if (isCandidate) {
-    return filled(s.websitesLikedCandidate) && filled(s.websitesAvoidCandidate);
-  }
-  return filled(s.websitesLikedParty) && filled(s.websitesAvoidParty);
+  if (isCandidate)  return filled(s.websitesLikedCandidate)  && filled(s.websitesAvoidCandidate);
+  if (isParty)      return filled(s.websitesLikedParty)      && filled(s.websitesAvoidParty);
+  if (isNonprofit)  return filled(s.websitesLikedNonprofit)  && filled(s.websitesAvoidNonprofit);
+  if (isPac)        return filled(s.websitesLikedPac)        && filled(s.websitesAvoidPac);
+  return false;
 }
-function validateStage8(s, isCandidate) {
+function validateStage8(s, isCandidate, isParty, isNonprofit, isPac) {
   if (!filled(s.privacyPolicy) || !filled(s.termsOfService) ||
       !filled(s.cookieConsent) || !filled(s.requiredPagesList)) return false;
-  // Compliance / paid-for disclaimer block
-  if (!filled(s.paidForDisclaimer) || !filled(s.stateElectionAgency) ||
-      !filled(s.campaignCounsel)) return false;
-  if (isCandidate && !filled(s.localElectionAuthority)) return false;
+  if (!filled(s.paidForDisclaimer)) return false;
+  if (isCandidate || isParty || isPac) {
+    if (!filled(s.stateElectionAgency)) return false;
+  }
+  if (isNonprofit && !filled(s.stateCharityAgency)) return false;
+  if (isCandidate) {
+    if (!filled(s.campaignCounsel)) return false;
+    if (!filled(s.localElectionAuthority)) return false;
+  }
+  if (isPac && !filled(s.pacAuthorizationDisclaimer)) return false;
   return true;
 }
 
@@ -152,7 +178,7 @@ function Stage1Identity() {
   return (
     <StageShell number={1} title="Subject & Identity" subtitle="Confirm subject type (auto-pulled from Form 1) and the basics." isFirst canContinue={canContinue}>
       <SubjectTypeToggle />
-      {(state.subjectType === 'candidate' || state.subjectType === 'party') && (
+      {['candidate', 'party', 'nonprofit', 'pac'].includes(state.subjectType) && (
         <div className="mt-4">
           <S1Identity />
         </div>
@@ -162,20 +188,29 @@ function Stage1Identity() {
 }
 
 function Stage2Profile() {
-  const { state, isCandidate, isParty } = useContent();
-  const canContinue = validateStage2(state, isCandidate, isParty);
+  const { state, isCandidate, isParty, isNonprofit, isPac, isOrg } = useContent();
+  const canContinue = validateStage2(state, isCandidate, isParty, isNonprofit, isPac);
+  const title = isCandidate ? 'Biography'
+              : isParty     ? 'Party Profile'
+              : isNonprofit ? 'Nonprofit Profile'
+              : isPac       ? 'PAC Profile'
+              : 'Profile';
+  const subtitle = isCandidate ? 'Where the candidate comes from, and who they are.'
+                 : 'Founding, mission, structure.';
   return (
-    <StageShell number={2} title={isCandidate ? 'Biography' : 'Party Profile'} subtitle={isCandidate ? 'Where the candidate comes from, and who they are.' : 'Founding, mission, structure.'} canContinue={canContinue}>
+    <StageShell number={2} title={title} subtitle={subtitle} canContinue={canContinue}>
       <S2ACandidateBio />
       <S2BPartyProfile />
-      {isParty && <S2CLeadership />}
+      <S2DNonprofitProfile />
+      <S2EPacProfile />
+      {isOrg && <S2CLeadership />}
     </StageShell>
   );
 }
 
 function Stage3Narrative() {
-  const { state, isCandidate, isParty } = useContent();
-  const canContinue = validateStage3(state, isCandidate, isParty);
+  const { state, isCandidate, isParty, isNonprofit, isPac } = useContent();
+  const canContinue = validateStage3(state, isCandidate, isParty, isNonprofit, isPac);
   return (
     <StageShell number={3} title="Narrative & Messaging" subtitle="The story you tell on the homepage and 'about' pages." canContinue={canContinue}>
       <S3Narrative />
@@ -184,8 +219,8 @@ function Stage3Narrative() {
 }
 
 function Stage4Issues() {
-  const { state } = useContent();
-  const canContinue = validateStage4(state);
+  const { state, isCandidate, isParty, isNonprofit, isPac } = useContent();
+  const canContinue = validateStage4(state, isCandidate, isParty, isNonprofit, isPac);
   return (
     <StageShell number={4} title="Issues / Platform" subtitle="Up to 5 issues. Names pre-fill from Form 2 priorities/pillars." canContinue={canContinue}>
       <S4Issues />
@@ -195,7 +230,7 @@ function Stage4Issues() {
 
 function Stage5Record() {
   const { state, isCandidate } = useContent();
-  const canContinue = validateStage5(state, isCandidate);
+  const canContinue = validateStage5(state, isCandidate); // record fields are subject-conditional but always optional except topics
   return (
     <StageShell number={5} title="Record, Risk & Compliance" subtitle="Receipts and disclosures." canContinue={canContinue}>
       <S5Record />
@@ -206,19 +241,19 @@ function Stage5Record() {
 }
 
 function Stage6Compliance() {
-  const { state, isCandidate, isParty } = useContent();
-  const canContinue = validateStage6(state, isCandidate, isParty);
+  const { state, isCandidate, isParty, isNonprofit, isPac } = useContent();
+  const canContinue = validateStage6(state, isCandidate, isParty, isNonprofit, isPac);
   return (
     <StageShell number={6} title="Data Governance & Endorsements" canContinue={canContinue}>
       <S8DataGov />
-      {isParty && <S9Endorsed />}
+      {(isParty || isPac) && <S9Endorsed />}
     </StageShell>
   );
 }
 
 function Stage7MediaSocial() {
-  const { state, isCandidate } = useContent();
-  const canContinue = validateStage7(state, isCandidate);
+  const { state, isCandidate, isParty, isNonprofit, isPac } = useContent();
+  const canContinue = validateStage7(state, isCandidate, isParty, isNonprofit, isPac);
   return (
     <StageShell number={7} title="Events, Media & Social" subtitle="Calendar, photos, video, and every social handle you have." canContinue={canContinue}>
       <S10Events />
@@ -231,8 +266,8 @@ function Stage7MediaSocial() {
 }
 
 function Stage8SitePages() {
-  const { state, isCandidate, isParty } = useContent();
-  const canContinue = validateStage8(state, isCandidate);
+  const { state, isCandidate, isParty, isNonprofit, isPac } = useContent();
+  const canContinue = validateStage8(state, isCandidate, isParty, isNonprofit, isPac);
   return (
     <StageShell number={8} title="Site Pages & Content" subtitle="Compliance pages, structure, email content, fundraising, and subject-specific extras." canContinue={canContinue}>
       <S16SiteCompliance />
@@ -240,8 +275,8 @@ function Stage8SitePages() {
       <S18EmailContent />
       <S19Fundraising />
       {isCandidate && <S20VoterResources />}
-      {isParty && <S21Membership />}
-      {isParty && <S22PublicGov />}
+      {(isParty || isNonprofit) && <S21Membership />}
+      {(isParty || isNonprofit) && <S22PublicGov />}
       <S23SEO />
       <S24Transactional />
       <S25Volunteer />

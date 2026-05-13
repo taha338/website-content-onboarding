@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   if (!clientId || !/^[A-Za-z0-9_-]{1,40}$/.test(clientId)) {
     return res.status(400).json({ error: 'Valid clientId required' });
   }
-  if (!['candidate', 'party'].includes(state.subjectType)) {
+  if (!['candidate', 'party', 'nonprofit', 'pac'].includes(state.subjectType)) {
     return res.status(400).json({ error: 'Subject type required.' });
   }
 
@@ -170,9 +170,17 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
   }
 
   if (activeClientTask) {
-    const subjectOrderIndex = state.subjectType === 'party' ? 1 : 0;
+    // Active Clients "Subject Type" dropdown is known to have Candidate (0) +
+    // Party (1) only; Nonprofit + PAC options must be added in the ClickUp
+    // UI. Until then, only write the field for candidate/party so we don't
+    // clobber with a bogus orderindex.
+    const subjectOrderIndex =
+      state.subjectType === 'party'     ? 1 :
+      state.subjectType === 'candidate' ? 0 : null;
     const updates = [
-      { fid: ACTIVE_CLIENTS_FIELD_IDS['Subject Type'],                  value: subjectOrderIndex },
+      ...(subjectOrderIndex !== null
+        ? [{ fid: ACTIVE_CLIENTS_FIELD_IDS['Subject Type'], value: subjectOrderIndex }]
+        : []),
       { fid: ACTIVE_CLIENTS_FIELD_IDS['Website Content Submitted At'],  value: Date.parse(submittedAt) },
       { fid: ACTIVE_CLIENTS_FIELD_IDS['Form 3 Supabase Row ID'],        value: supabaseRowId },
     ].filter((u) => u.fid);

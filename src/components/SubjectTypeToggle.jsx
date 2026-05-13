@@ -1,6 +1,8 @@
-import { User, Flag } from 'lucide-react';
+import { User, Flag, HeartHandshake, Landmark } from 'lucide-react';
 import { useContent } from '../context/ContentContext';
 import { SUBJECT_TYPES } from '../lib/options';
+
+const ICONS = { candidate: User, party: Flag, nonprofit: HeartHandshake, pac: Landmark };
 
 export default function SubjectTypeToggle() {
   const { state, update } = useContent();
@@ -8,10 +10,10 @@ export default function SubjectTypeToggle() {
     <div>
       <p className="op-label">Confirm subject type</p>
       <p className="op-help mb-3">Auto-pulled from Form 1 when available; pick manually if it didn't load.</p>
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {SUBJECT_TYPES.map((opt) => {
           const selected = state.subjectType === opt.id;
-          const Icon = opt.id === 'candidate' ? User : Flag;
+          const Icon = ICONS[opt.id] || User;
           return (
             <button
               key={opt.id}
