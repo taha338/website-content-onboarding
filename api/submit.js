@@ -71,14 +71,52 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Supabase insert failed', detail: error.message });
   }
 
+  // Build the ClickUp custom_fields[] array ONCE and persist it to the
+  // Supabase row. The Worker's reconcileDownstreamFields cron reads
+  // `clickup_fields` to gap-fill anything the best-effort inline sync below
+  // drops under ClickUp rate-limiting.
   const errors = [];
-  await syncClickUp({ state, clientId, submittedAt, supabaseRowId: row.id })
-    .catch((e) => { console.error('[website-content] ClickUp sync failed:', e); errors.push({ step: 'clickup', detail: String(e.message || e) }); });
+  let customFields = [];
+  let unresolved = [];
+  let fieldFailures = [];
+  try {
+    const optionsMap = await getDropdownOptionsMap();
+    const built = buildCustomFields(state, optionsMap);
+    customFields = built.fields;
+    unresolved = built.unresolved;
+  } catch (e) {
+    console.error('[website-content] buildCustomFields failed:', e);
+    errors.push({ step: 'build_fields', detail: String(e.message || e) });
+  }
+  if (unresolved.length) {
+    console.warn('[website-content] unresolved dropdown values:', unresolved);
+  }
+  if (customFields.length) {
+    const { error: cfErr } = await supabase
+      .from('website_content_submissions')
+      .update({ clickup_fields: customFields })
+      .eq('id', row.id);
+    if (cfErr) console.error('[website-content] clickup_fields persist failed:', cfErr);
+  }
+
+  try {
+    const r = await syncClickUp({ state, clientId, submittedAt, supabaseRowId: row.id, customFields });
+    fieldFailures = r.fieldFailures || [];
+  } catch (e) {
+    console.error('[website-content] ClickUp sync failed:', e);
+    errors.push({ step: 'clickup', detail: String(e.message || e) });
+  }
   await syncSheets({ state, clientId, submittedAt, supabaseRowId: row.id })
     .catch((e) => errors.push({ step: 'sheets', detail: String(e.message || e) }));
 
   res.setHeader('Cache-Control', 'no-store');
-  return res.status(200).json({ ok: true, id: row.id, syncErrors: errors });
+  return res.status(200).json({
+    ok: true,
+    id: row.id,
+    syncErrors: errors,
+    fieldWriteFailures: fieldFailures,
+    unresolvedDropdowns: unresolved,
+  });
 }
 
 
@@ -117,7 +155,7 @@ async function findActiveClientByClientId(clientId) {
   return null;
 }
 
-async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
+async function syncClickUp({ state, clientId, submittedAt, supabaseRowId, customFields }) {
   const displayName = state.displayName || state.candidateName || state.partyName || clientId;
   const taskName    = `${displayName} (${clientId}) — Website Content`;
 
@@ -125,14 +163,8 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
   // No description dump — all data lives in structured custom fields now.
   const description = '';
 
-  const optionsMap = await getDropdownOptionsMap().catch((e) => {
-    console.warn('[website-content] dropdown options fetch failed:', e.message);
-    return {};
-  });
-  const { fields: customFields, unresolved } = buildCustomFields(state, optionsMap);
-  if (unresolved.length) {
-    console.warn('[website-content] unresolved dropdown values:', unresolved);
-  }
+  // customFields is built + persisted to the Supabase row by the caller, so
+  // the Worker reconciler can heal anything dropped by the write loop below.
 
   // Step 1: create task WITHOUT inline custom_fields. ClickUp's inline
   // custom_fields array silently drops the FIRST ~25-28 entries when more
@@ -213,7 +245,7 @@ async function syncClickUp({ state, clientId, submittedAt, supabaseRowId }) {
     body: JSON.stringify({ status: 'submitted' }),
   }).catch((e) => console.error('[website-content] status flip to submitted failed:', e.message));
 
-  return { task_id: newTask.id, active_client_id: activeClientTask?.id || null };
+  return { task_id: newTask.id, active_client_id: activeClientTask?.id || null, fieldFailures };
 }
 
 async function maybeAdvanceAllFormsReceived(activeClientTask, justWrote) {
