@@ -19,20 +19,20 @@ export default function SubjectTypeToggle() {
               key={opt.id}
               type="button"
               onClick={() => update({ subjectType: opt.id })}
-              className={`flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
+              className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all ${
                 selected
                   ? 'bg-[var(--color-op-red)] border-[var(--color-op-red)] text-white shadow-lg'
                   : 'bg-white border-[var(--color-op-line)] text-[var(--color-op-ink)] hover:border-[var(--color-op-red)]'
               }`}
             >
-              <span className={`flex-shrink-0 inline-flex items-center justify-center w-12 h-12 rounded-lg ${
+              <span className={`flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg ${
                 selected ? 'bg-white/15' : 'bg-[var(--color-op-cream)]'
               }`}>
-                <Icon size={22} />
+                <Icon size={20} />
               </span>
-              <span>
-                <span className="block font-display tracking-wider text-lg">{opt.label}</span>
-                <span className={`block text-xs mt-1 ${selected ? 'text-white/80' : 'text-[var(--color-op-muted)]'}`}>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display tracking-wide text-base leading-tight break-words">{opt.label}</span>
+                <span className={`block text-xs mt-1 break-words ${selected ? 'text-white/80' : 'text-[var(--color-op-muted)]'}`}>
                   {opt.desc}
                 </span>
               </span>
