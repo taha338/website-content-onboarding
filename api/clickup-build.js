@@ -23,7 +23,9 @@ function stripEmptyRows(arr) {
 // catch-all (handled in buildCustomFields below).
 export const STATE_TO_FIELD = {
   adCreativeLink:                'Ad creative — folder link',
-  alternateTaglines:             'Alternate taglines under consideration',
+  // alternateTaglines: removed — no form UI input currently writes this key,
+  // so it was always silently absent. Re-add when a tagline-variants input
+  // is added to the form.
   applicableStatutes:            'Applicable disclosure statutes',
   awardsHonors:                  'Awards, honors, notable press hits',
   bRollUploads:                  'B-Roll — folder link',
