@@ -259,6 +259,70 @@ function resolveOption(raw, options) {
   return null;
 }
 
+// Form fields capture freeform answers but their ClickUp counterparts are
+// constrained drop_downs — map the form's text to the nearest CU option.
+// Without these, resolveOption returns null and the field silently drops.
+const DROPDOWN_VALUE_TRANSFORMS = {
+  'Privacy Policy':       (raw) => /^https?:\/\//i.test(String(raw)) ? 'Have one'
+                                  : /need|draft/i.test(String(raw))   ? 'Need draft'
+                                  : /n\/?a|none|no\b/i.test(String(raw)) ? 'N/A'
+                                  : 'Have one',
+  'Terms of Service / Site Terms': (raw) => /^https?:\/\//i.test(String(raw)) ? 'Have one'
+                                  : /need|draft/i.test(String(raw))   ? 'Need draft'
+                                  : /n\/?a|none|no\b/i.test(String(raw)) ? 'N/A'
+                                  : 'Have one',
+  'Cookie consent preferences': (raw) => {
+    const s = String(raw).toLowerCase();
+    if (/gdpr/.test(s))                       return 'GDPR';
+    if (/ccpa/.test(s))                       return 'CCPA';
+    if (/banner|yes|required|consent/.test(s))return 'Basic banner';
+    if (/none|no\b/.test(s))                  return 'None';
+    return 'Basic banner';
+  },
+  'Hosting preference (video)': (raw) => {
+    const s = String(raw).toLowerCase();
+    if (/youtube/.test(s))                 return 'YouTube';
+    if (/vimeo/.test(s))                   return 'Vimeo';
+    if (/self[-\s]?host|vercel|s3|cdn/.test(s)) return 'Self-hosted';
+    return 'Other';
+  },
+  'Who provides translation?': (raw) => {
+    const s = String(raw).toLowerCase();
+    if (/op1776|agency|us\b/.test(s))        return 'Op1776';
+    if (/auto|machine|google translate/.test(s)) return 'Auto-translate';
+    return 'Client'; // internal team, volunteer, in-house, etc.
+  },
+  'Recurring donation default': (raw) => {
+    const s = String(raw).toLowerCase().trim();
+    if (!s || /^(no|off|disabled|none)$/.test(s)) return 'Off';
+    return 'On'; // any specified frequency means recurring is on
+  },
+  'Photographer credit required?': (raw) => {
+    const s = String(raw).toLowerCase().trim();
+    if (/^yes|required|must|credit/.test(s)) return 'Yes';
+    if (/^no|none|optional/.test(s))         return 'No';
+    return 'Yes';
+  },
+};
+
+// url-type fields are silently rejected by ClickUp when the value isn't a
+// valid URL. Form captures social platforms as bare handles (e.g.
+// "@testcampaign") — prepend the canonical profile prefix per platform.
+const URL_HANDLE_PREFIX = {
+  'Truth Social':         (h) => `https://truthsocial.com/@${h.replace(/^@/, '')}`,
+  'Rumble':               (h) => `https://rumble.com/c/${h.replace(/^@/, '')}`,
+  'Instagram':            (h) => `https://instagram.com/${h.replace(/^@/, '')}`,
+  'LinkedIn (candidate)': (h) => `https://linkedin.com/in/${h.replace(/^@/, '')}`,
+  'LinkedIn (campaign)':  (h) => `https://linkedin.com/company/${h.replace(/^@/, '')}`,
+  'Threads':              (h) => `https://threads.net/@${h.replace(/^@/, '')}`,
+  'Bluesky':              (h) => `https://bsky.app/profile/${h.replace(/^@/, '')}`,
+  'X / Twitter':          (h) => `https://x.com/${h.replace(/^@/, '')}`,
+  'Facebook page URL':    (h) => `https://facebook.com/${h.replace(/^@/, '')}`,
+  'TikTok':               (h) => `https://tiktok.com/@${h.replace(/^@/, '')}`,
+  'YouTube':              (h) => `https://youtube.com/@${h.replace(/^@/, '')}`,
+  'Telegram':             (h) => `https://t.me/${h.replace(/^@/, '')}`,
+};
+
 // Build {fieldName: rawValue} from the deeply-shaped `state`
 function flattenState(state) {
   const out = {};
@@ -344,7 +408,9 @@ export function buildCustomFields(state, optionsMap = {}) {
       if (isNaN(d.getTime())) continue;
       value = d.getTime();
     } else if (type === 'drop_down') {
-      const idx = resolveOption(raw, optionsMap[fid]);
+      const transform = DROPDOWN_VALUE_TRANSFORMS[fname];
+      const candidate = transform ? transform(raw) : raw;
+      const idx = resolveOption(candidate, optionsMap[fid]);
       if (idx === null || idx === undefined) {
         unresolved.push({ fieldName: fname, fieldId: fid, value: String(raw) });
         continue;
@@ -365,6 +431,13 @@ export function buildCustomFields(state, optionsMap = {}) {
         value = String(raw).trim();
       }
       if (!value) continue;
+      // url fields: ClickUp silently drops non-URLs. If the value looks
+      // like a bare handle for a known social platform, expand it.
+      if (type === 'url' && !/^https?:\/\//i.test(value)) {
+        const prefix = URL_HANDLE_PREFIX[fname];
+        if (prefix) value = prefix(value);
+        else        value = `https://${value.replace(/^\/+/, '')}`;
+      }
     }
     out.push({ id: fid, value });
   }
