@@ -23,6 +23,9 @@ function stripEmptyRows(arr) {
 // catch-all (handled in buildCustomFields below).
 export const STATE_TO_FIELD = {
   adCreativeLink:                'Ad creative — folder link',
+  // Form captures a URL; the original "...— uploads" CU field is attachment-
+  // type and not writable via the public API. Route to the sibling url field.
+  slateCardsUploads:             'Slate cards / sample ballots — link',
   // alternateTaglines: removed — no form UI input currently writes this key,
   // so it was always silently absent. Re-add when a tagline-variants input
   // is added to the form.
